@@ -63,7 +63,9 @@ export default function Auth() {
       <div className="z-10 w-full max-w-md p-8 sm:p-10 space-y-8 bg-slate-900/60 backdrop-blur-xl border border-slate-800/50 rounded-2xl shadow-2xl animate-fade-in-up">
         {/* Form specific header since brand moved to watermark */}
         <div className="text-center space-y-2 pb-2">
-          <h2 className="text-xl font-serif text-white tracking-wide">Acesso Restrito</h2>
+          <h2 className="text-xl font-serif text-white tracking-wide">
+            Atlas Wealth Manager&nbsp;
+          </h2>
           <p className="text-[0.65rem] sm:text-xs font-light text-slate-400 tracking-[0.2em] uppercase">
             Cofre de Inteligência Estratégica
           </p>
