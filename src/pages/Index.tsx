@@ -200,50 +200,73 @@ export default function Index() {
     )
     const allEvents = [...relevantHistory].sort((a, b) => a.date.localeCompare(b.date))
 
+    const currentMonthStr = now.toISOString().substring(0, 7)
+
     const eventsByAsset = new Map<string, Array<{ month: string; value: number }>>()
     allEvents.forEach((e) => {
       const m = e.date.substring(0, 7)
       if (!eventsByAsset.has(e.asset)) eventsByAsset.set(e.asset, [])
-      const arr = eventsByAsset.get(e.asset)!
-      if (arr.length > 0 && arr[arr.length - 1].month === m) {
-        arr[arr.length - 1].value = e.value
-      } else {
-        arr.push({ month: m, value: e.value })
-      }
+      eventsByAsset.get(e.asset)!.push({ month: m, value: e.value })
     })
 
-    const currentMonthStr = now.toISOString().substring(0, 7)
+    const uniquePointsByAsset = new Map<string, Array<{ month: string; value: number }>>()
+    filteredAssets.forEach((asset) => {
+      const points = []
+      const startMonth = asset.acquisition_date
+        ? asset.acquisition_date.substring(0, 7)
+        : asset.created
+          ? asset.created.substring(0, 7)
+          : null
+      const startPrice = asset.purchase_price ?? asset.current_valuation ?? 0
+
+      if (startMonth) {
+        points.push({ month: startMonth, value: startPrice })
+      }
+
+      const events = eventsByAsset.get(asset.id) || []
+      events.forEach((e) => {
+        points.push({ month: e.month, value: e.value })
+      })
+
+      points.push({ month: currentMonthStr, value: asset.current_valuation || 0 })
+      points.sort((a, b) => a.month.localeCompare(b.month))
+
+      const uniquePoints: Array<{ month: string; value: number }> = []
+      for (const p of points) {
+        const last = uniquePoints[uniquePoints.length - 1]
+        if (last && last.month === p.month) {
+          last.value = p.value
+        } else {
+          uniquePoints.push({ ...p })
+        }
+      }
+      uniquePointsByAsset.set(asset.id, uniquePoints)
+    })
 
     const data = allMonths.map((m) => {
       let totalAssetsValue = 0
       filteredAssets.forEach((asset) => {
-        const events = eventsByAsset.get(asset.id) || []
+        const uniquePoints = uniquePointsByAsset.get(asset.id) || []
         let latestValue = 0
-        let foundEvent = false
-        for (let i = events.length - 1; i >= 0; i--) {
-          if (events[i].month <= m) {
-            latestValue = events[i].value
-            foundEvent = true
-            break
+
+        if (uniquePoints.length === 0 || m < uniquePoints[0].month) {
+          latestValue = 0
+        } else if (m >= uniquePoints[uniquePoints.length - 1].month) {
+          latestValue = uniquePoints[uniquePoints.length - 1].value
+        } else {
+          for (let i = 0; i < uniquePoints.length - 1; i++) {
+            if (uniquePoints[i].month <= m && uniquePoints[i + 1].month > m) {
+              const p1 = uniquePoints[i]
+              const p2 = uniquePoints[i + 1]
+              const [y1, mo1] = p1.month.split('-').map(Number)
+              const [y2, mo2] = p2.month.split('-').map(Number)
+              const diffMonths = (y2 - y1) * 12 + (mo2 - mo1)
+              const [my, mmo] = m.split('-').map(Number)
+              const passedMonths = (my - y1) * 12 + (mmo - mo1)
+              latestValue = p1.value + (p2.value - p1.value) * (passedMonths / diffMonths)
+              break
+            }
           }
-        }
-
-        if (!foundEvent) {
-          const startMonth = asset.acquisition_date
-            ? asset.acquisition_date.substring(0, 7)
-            : asset.created
-              ? asset.created.substring(0, 7)
-              : null
-
-          if (startMonth && startMonth <= m) {
-            latestValue = asset.purchase_price || asset.current_valuation || 0
-          } else {
-            latestValue = 0
-          }
-        }
-
-        if (m === currentMonthStr) {
-          latestValue = asset.current_valuation || latestValue
         }
 
         totalAssetsValue += convertValue(

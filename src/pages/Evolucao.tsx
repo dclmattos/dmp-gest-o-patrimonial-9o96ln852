@@ -67,17 +67,7 @@ export default function Evolucao() {
     const relevantHistory = (valuationHistory || []).filter(
       (vh) => filteredAssetsIds.has(vh.asset) && vh.date,
     )
-    const acquisitions = filteredAssets
-      .filter((a) => a.acquisition_date)
-      .map((a) => ({
-        asset: a.id,
-        date: a.acquisition_date,
-        value: a.purchase_price ?? 0,
-      }))
-
-    const allEvents = [...relevantHistory, ...acquisitions].sort((a, b) =>
-      a.date.localeCompare(b.date),
-    )
+    const allEvents = [...relevantHistory].sort((a, b) => a.date.localeCompare(b.date))
 
     const currentMonthStr = new Date().toISOString().substring(0, 7)
 
@@ -108,32 +98,64 @@ export default function Evolucao() {
       eventsByAsset.get(e.asset)!.push({ month: m, value: e.value })
     })
 
+    const uniquePointsByAsset = new Map<string, Array<{ month: string; value: number }>>()
+    filteredAssets.forEach((asset) => {
+      const points = []
+      const startMonth = asset.acquisition_date
+        ? asset.acquisition_date.substring(0, 7)
+        : asset.created
+          ? asset.created.substring(0, 7)
+          : null
+      const startPrice = asset.purchase_price ?? asset.current_valuation ?? 0
+
+      if (startMonth) {
+        points.push({ month: startMonth, value: startPrice })
+      }
+
+      const events = eventsByAsset.get(asset.id) || []
+      events.forEach((e) => {
+        points.push({ month: e.month, value: e.value })
+      })
+
+      points.push({ month: currentMonthStr, value: asset.current_valuation || 0 })
+      points.sort((a, b) => a.month.localeCompare(b.month))
+
+      const uniquePoints: Array<{ month: string; value: number }> = []
+      for (const p of points) {
+        const last = uniquePoints[uniquePoints.length - 1]
+        if (last && last.month === p.month) {
+          last.value = p.value
+        } else {
+          uniquePoints.push({ ...p })
+        }
+      }
+      uniquePointsByAsset.set(asset.id, uniquePoints)
+    })
+
     const data = allMonths.map((m) => {
       let totalValue = 0
       filteredAssets.forEach((asset) => {
-        const events = eventsByAsset.get(asset.id) || []
+        const uniquePoints = uniquePointsByAsset.get(asset.id) || []
         let latestValue = 0
-        let foundEvent = false
-        for (let i = events.length - 1; i >= 0; i--) {
-          if (events[i].month <= m) {
-            latestValue = events[i].value
-            foundEvent = true
-            break
-          }
-        }
 
-        if (!foundEvent && events.length === 0) {
-          if (asset.acquisition_date && asset.acquisition_date.substring(0, 7) <= m) {
-            latestValue = asset.purchase_price || asset.current_valuation || 0
-          } else if (!asset.acquisition_date) {
-            latestValue = m === currentMonthStr ? asset.current_valuation || 0 : 0
-          }
-        } else if (!foundEvent) {
+        if (uniquePoints.length === 0 || m < uniquePoints[0].month) {
           latestValue = 0
-        }
-
-        if (m === currentMonthStr) {
-          latestValue = asset.current_valuation || 0
+        } else if (m >= uniquePoints[uniquePoints.length - 1].month) {
+          latestValue = uniquePoints[uniquePoints.length - 1].value
+        } else {
+          for (let i = 0; i < uniquePoints.length - 1; i++) {
+            if (uniquePoints[i].month <= m && uniquePoints[i + 1].month > m) {
+              const p1 = uniquePoints[i]
+              const p2 = uniquePoints[i + 1]
+              const [y1, mo1] = p1.month.split('-').map(Number)
+              const [y2, mo2] = p2.month.split('-').map(Number)
+              const diffMonths = (y2 - y1) * 12 + (mo2 - mo1)
+              const [my, mmo] = m.split('-').map(Number)
+              const passedMonths = (my - y1) * 12 + (mmo - mo1)
+              latestValue = p1.value + (p2.value - p1.value) * (passedMonths / diffMonths)
+              break
+            }
+          }
         }
 
         totalValue += convertValue(latestValue, assetCurrencyMap.get(asset.id) || 'BRL', currency)
