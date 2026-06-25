@@ -4,8 +4,12 @@ import { getAssets } from '@/services/assets'
 import { getLiabilities } from '@/services/liabilities'
 import { getReceivables } from '@/services/receivables'
 import { getValuationHistory } from '@/services/valuation_history'
+import { useAuth } from '@/hooks/use-auth'
 
-export function useDashboardData() {
+export function useDashboardData(userId?: string) {
+  const { user } = useAuth()
+  const effectiveUserId = userId || (user?.role === 'user' ? user?.id : undefined)
+
   const [assets, setAssets] = useState<any[]>([])
   const [liabilities, setLiabilities] = useState<any[]>([])
   const [receivables, setReceivables] = useState<any[]>([])
@@ -14,10 +18,10 @@ export function useDashboardData() {
   const load = async () => {
     try {
       const [a, l, r, vh] = await Promise.all([
-        getAssets(),
-        getLiabilities(),
-        getReceivables(),
-        getValuationHistory(),
+        getAssets(effectiveUserId),
+        getLiabilities(effectiveUserId),
+        getReceivables(effectiveUserId),
+        getValuationHistory(effectiveUserId),
       ])
       setAssets(a)
       setLiabilities(l)
@@ -30,9 +34,10 @@ export function useDashboardData() {
 
   useEffect(() => {
     load()
-  }, [])
+  }, [effectiveUserId])
 
   useRealtime('assets', (e) => {
+    if (effectiveUserId && e.record.user !== effectiveUserId) return
     if (e.action === 'create') setAssets((prev) => [...prev, e.record])
     else if (e.action === 'update')
       setAssets((prev) => prev.map((item) => (item.id === e.record.id ? e.record : item)))
@@ -41,6 +46,7 @@ export function useDashboardData() {
     else load()
   })
   useRealtime('liabilities', (e) => {
+    if (effectiveUserId && e.record.user !== effectiveUserId) return
     if (e.action === 'create') setLiabilities((prev) => [...prev, e.record])
     else if (e.action === 'update')
       setLiabilities((prev) => prev.map((item) => (item.id === e.record.id ? e.record : item)))
@@ -49,6 +55,7 @@ export function useDashboardData() {
     else load()
   })
   useRealtime('receivables', (e) => {
+    if (effectiveUserId && e.record.user !== effectiveUserId) return
     if (e.action === 'create') setReceivables((prev) => [...prev, e.record])
     else if (e.action === 'update')
       setReceivables((prev) => prev.map((item) => (item.id === e.record.id ? e.record : item)))
@@ -57,6 +64,7 @@ export function useDashboardData() {
     else load()
   })
   useRealtime('valuation_history', (e) => {
+    if (effectiveUserId && e.record.user !== effectiveUserId) return
     if (e.action === 'create') setValuationHistory((prev) => [...prev, e.record])
     else if (e.action === 'update')
       setValuationHistory((prev) => prev.map((item) => (item.id === e.record.id ? e.record : item)))

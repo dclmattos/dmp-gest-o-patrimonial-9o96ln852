@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useDashboardData } from '@/hooks/use-dashboard-data'
 import { useCurrency } from '@/hooks/use-currency'
+import { useAuth } from '@/hooks/use-auth'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Download } from 'lucide-react'
-import { useEffect } from 'react'
+import { Download, Users } from 'lucide-react'
 import { CategoryManager } from '@/components/CategoryManager'
 import { AssetDialog } from '@/components/AssetDialog'
 import { AssetCard } from '@/components/AssetCard'
@@ -12,13 +12,45 @@ import { getAssetCategories } from '@/services/asset_categories'
 import { deleteAsset } from '@/services/assets'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
+import { getUsers } from '@/services/users'
+import { setSelectedUserId } from '@/stores/selectedUser'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export default function Patrimonio() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
+
+  const [clients, setClients] = useState<any[]>([])
+  const [selectedClient, setSelectedClient] = useState<string>(isAdmin ? '' : user?.id)
+
+  useEffect(() => {
+    if (isAdmin) {
+      getUsers().then((data) => setClients(data.filter((u) => u.role === 'user')))
+    }
+  }, [isAdmin])
+
+  useEffect(() => {
+    if (selectedClient) {
+      setSelectedUserId(selectedClient)
+    } else {
+      setSelectedUserId(null)
+    }
+    return () => setSelectedUserId(null)
+  }, [selectedClient])
+
   const [categories, setCategories] = useState<any[]>([])
 
   const loadCategories = async () => {
+    if (isAdmin && !selectedClient) return
+    const effectiveUserId = selectedClient || (user?.role === 'user' ? user?.id : undefined)
     try {
-      const data = await getAssetCategories()
+      const data = await getAssetCategories(effectiveUserId)
       setCategories(data)
     } catch {
       /* intentionally ignored */
@@ -27,10 +59,12 @@ export default function Patrimonio() {
 
   useEffect(() => {
     loadCategories()
-  }, [])
+  }, [selectedClient, isAdmin, user])
+
   useRealtime('asset_categories', loadCategories)
 
-  const { assets } = useDashboardData()
+  const queryUserId = isAdmin && !selectedClient ? 'skip' : selectedClient || undefined
+  const { assets } = useDashboardData(queryUserId)
 
   const { currency } = useCurrency()
   const [tab, setTab] = useState('all')
@@ -83,6 +117,46 @@ export default function Patrimonio() {
     link.click()
   }
 
+  if (isAdmin && !selectedClient) {
+    return (
+      <div className="space-y-8 animate-fade-in">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
+          <div>
+            <h2 className="text-3xl font-serif tracking-tight">Cofre de Ativos</h2>
+            <p className="text-muted-foreground mt-1">
+              Gestão de ativos dos clientes. Selecione um cliente para visualizar.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={selectedClient} onValueChange={setSelectedClient}>
+              <SelectTrigger className="w-[280px]">
+                <SelectValue placeholder="Selecione um cliente..." />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name || c.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex flex-col items-center justify-center py-24 text-center border rounded-lg border-dashed bg-card/50">
+          <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+            <Users className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="text-xl font-medium mb-2">Nenhum cliente selecionado</h3>
+          <p className="text-muted-foreground max-w-md">
+            Utilize o seletor acima para escolher um cliente e gerenciar o seu cofre de ativos
+            patrimoniais.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
@@ -93,6 +167,20 @@ export default function Patrimonio() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {isAdmin && (
+            <Select value={selectedClient} onValueChange={setSelectedClient}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Trocar cliente..." />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name || c.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button
             variant="outline"
             onClick={handleExport}
