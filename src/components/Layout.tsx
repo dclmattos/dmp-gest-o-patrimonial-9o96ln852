@@ -16,6 +16,7 @@ import {
   Briefcase,
   ArrowRightLeft,
   TrendingUp,
+  FileText,
   MessageSquare,
   LogOut,
   Search,
@@ -94,6 +95,16 @@ export default function Layout() {
                   className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
                 >
                   <TrendingUp /> <span>Evolução</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link
+                  to="/relatorios"
+                  className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
+                >
+                  <FileText /> <span>Relatórios</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

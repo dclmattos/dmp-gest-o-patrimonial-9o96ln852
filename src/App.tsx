@@ -12,6 +12,7 @@ import Patrimonio from '@/pages/Patrimonio'
 import Fluxo from '@/pages/Fluxo'
 import Evolucao from '@/pages/Evolucao'
 import VIPAdvisor from '@/pages/VIPAdvisor'
+import Relatorios from '@/pages/Relatorios'
 import NotFound from '@/pages/NotFound'
 
 const App = () => (
@@ -29,6 +30,7 @@ const App = () => (
                 <Route path="/patrimonio" element={<Patrimonio />} />
                 <Route path="/fluxo" element={<Fluxo />} />
                 <Route path="/evolucao" element={<Evolucao />} />
+                <Route path="/relatorios" element={<Relatorios />} />
                 <Route path="/advisor" element={<VIPAdvisor />} />
               </Route>
             </Route>
