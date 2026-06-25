@@ -5,8 +5,30 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Building2, Car, Globe, TrendingUp } from 'lucide-react'
+import * as Icons from 'lucide-react'
+import { useEffect } from 'react'
+import { CategoryManager } from '@/components/CategoryManager'
+import { AssetDialog } from '@/components/AssetDialog'
+import { getAssetCategories } from '@/services/asset_categories'
+import { useRealtime } from '@/hooks/use-realtime'
 
 export default function Patrimonio() {
+  const [categories, setCategories] = useState<any[]>([])
+
+  const loadCategories = async () => {
+    try {
+      const data = await getAssetCategories()
+      setCategories(data)
+    } catch {
+      /* intentionally ignored */
+    }
+  }
+
+  useEffect(() => {
+    loadCategories()
+  }, [])
+  useRealtime('asset_categories', loadCategories)
+
   const { assets } = useDashboardData()
   const { currency } = useCurrency()
   const [tab, setTab] = useState('all')
@@ -28,6 +50,10 @@ export default function Patrimonio() {
           <p className="text-muted-foreground mt-1">
             Gestão completa dos seus ativos físicos e financeiros.
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <CategoryManager />
+          <AssetDialog />
         </div>
       </div>
 
@@ -59,12 +85,31 @@ export default function Patrimonio() {
               >
                 <CardHeader className="pb-4">
                   <div className="flex justify-between items-start mb-4">
-                    <Badge
-                      variant="secondary"
-                      className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                    >
-                      {asset.subtype || 'Ativo'}
-                    </Badge>
+                    <div className="flex gap-2 flex-wrap">
+                      <Badge
+                        variant="secondary"
+                        className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                      >
+                        {asset.subtype || 'Ativo'}
+                      </Badge>
+                      {asset.category &&
+                        (() => {
+                          const cat = categories.find((c) => c.id === asset.category)
+                          if (!cat) return null
+                          const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
+                          return (
+                            <Badge
+                              variant="outline"
+                              className="flex items-center gap-1 border-border/50"
+                              style={{ color: cat.color }}
+                            >
+                              {/* @ts-expect-error */}
+                              <Icon size={12} style={{ color: cat.color }} />
+                              {cat.name}
+                            </Badge>
+                          )
+                        })()}
+                    </div>
                     <div className="text-slate-400 group-hover:text-primary transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50">
                       {getIcon(asset.type)}
                     </div>
