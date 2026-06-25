@@ -109,11 +109,20 @@ export default function Fluxo() {
                   <div>
                     <p className="font-medium text-slate-800 dark:text-slate-200">{l.name}</p>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1.5">
-                      {l.due_date && (
+                      {l.is_recurring && l.monthly_due_day ? (
+                        <div className="flex items-center gap-1">
+                          <CalendarIcon size={12} /> Dia {l.monthly_due_day}
+                        </div>
+                      ) : l.due_date ? (
                         <div className="flex items-center gap-1">
                           <CalendarIcon size={12} /> {new Date(l.due_date).toLocaleDateString()}
                         </div>
-                      )}
+                      ) : l.start_date ? (
+                        <div className="flex items-center gap-1">
+                          <CalendarIcon size={12} /> Início:{' '}
+                          {new Date(l.start_date).toLocaleDateString()}
+                        </div>
+                      ) : null}
                       <span>
                         Saldo Restante:{' '}
                         {formatCurrency(

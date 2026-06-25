@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-25T16:55:15.623Z",
+  "generatedAt": "2026-06-25T17:03:07.578Z",
   "collections": [
     {
       "name": "users",
@@ -215,6 +215,30 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "start_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_recurring",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "monthly_due_day",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "end_date",
+          "type": "date",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []

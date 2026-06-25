@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Plus } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { createLiability } from '@/services/liabilities'
@@ -25,9 +26,25 @@ export function AddLiabilityDialog() {
   const [monthlyInstallment, setMonthlyInstallment] = useState('')
   const [dueDate, setDueDate] = useState('')
 
+  const [startDate, setStartDate] = useState('')
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [monthlyDueDay, setMonthlyDueDay] = useState('')
+  const [hasEndDate, setHasEndDate] = useState(false)
+  const [endDate, setEndDate] = useState('')
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
+
+    if (hasEndDate && endDate && startDate && new Date(endDate) < new Date(startDate)) {
+      toast({
+        title: 'Data inválida',
+        description: 'A data de término não pode ser anterior à data de início.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     try {
       await createLiability({
         user: user.id,
@@ -35,7 +52,12 @@ export function AddLiabilityDialog() {
         total_value: totalValue ? Number(totalValue) : null,
         remaining_balance: remainingBalance ? Number(remainingBalance) : Number(totalValue),
         monthly_installment: monthlyInstallment ? Number(monthlyInstallment) : null,
-        due_date: dueDate ? new Date(dueDate + 'T12:00:00.000Z').toISOString() : null,
+        due_date:
+          !isRecurring && dueDate ? new Date(dueDate + 'T12:00:00.000Z').toISOString() : null,
+        start_date: startDate ? new Date(startDate + 'T12:00:00.000Z').toISOString() : null,
+        is_recurring: isRecurring,
+        monthly_due_day: isRecurring && monthlyDueDay ? Number(monthlyDueDay) : null,
+        end_date: hasEndDate && endDate ? new Date(endDate + 'T12:00:00.000Z').toISOString() : null,
       })
       toast({ title: 'Sucesso', description: 'Obrigação adicionada com sucesso.' })
       setOpen(false)
@@ -44,6 +66,11 @@ export function AddLiabilityDialog() {
       setRemainingBalance('')
       setMonthlyInstallment('')
       setDueDate('')
+      setStartDate('')
+      setIsRecurring(false)
+      setMonthlyDueDay('')
+      setHasEndDate(false)
+      setEndDate('')
     } catch (err: any) {
       toast({
         title: 'Erro',
@@ -64,7 +91,7 @@ export function AddLiabilityDialog() {
           <Plus size={14} /> Nova Obrigação
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova Obrigação / Passivo</DialogTitle>
         </DialogHeader>
@@ -82,7 +109,7 @@ export function AddLiabilityDialog() {
             <div className="space-y-2">
               <Label>Valor Total</Label>
               <Input
-                required
+                required={!isRecurring}
                 type="number"
                 step="0.01"
                 min="0"
@@ -116,15 +143,69 @@ export function AddLiabilityDialog() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Data de Vencimento</Label>
+              <Label>Data de Início</Label>
               <Input
                 required
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-3 border rounded-lg dark:border-slate-800">
+            <div className="space-y-0.5">
+              <Label>Despesa Recorrente</Label>
+              <p className="text-xs text-muted-foreground">Obrigação se repete mensalmente</p>
+            </div>
+            <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
+          </div>
+
+          {isRecurring ? (
+            <div className="space-y-2 animate-fade-in-down">
+              <Label>Dia de Vencimento Mensal</Label>
+              <Input
+                required={isRecurring}
+                type="number"
+                min="1"
+                max="31"
+                value={monthlyDueDay}
+                onChange={(e) => setMonthlyDueDay(e.target.value)}
+                placeholder="Ex: 5"
+              />
+            </div>
+          ) : (
+            <div className="space-y-2 animate-fade-in-up">
+              <Label>Data de Vencimento</Label>
+              <Input
+                required={!isRecurring}
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
               />
             </div>
+          )}
+
+          <div className="flex items-center justify-between p-3 border rounded-lg dark:border-slate-800">
+            <div className="space-y-0.5">
+              <Label>Data de Término</Label>
+              <p className="text-xs text-muted-foreground">Marque para definir fim da obrigação</p>
+            </div>
+            <Switch checked={hasEndDate} onCheckedChange={setHasEndDate} />
           </div>
+
+          {hasEndDate && (
+            <div className="space-y-2 animate-fade-in-down">
+              <Label>Data de Término</Label>
+              <Input
+                required={hasEndDate}
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          )}
+
           <Button type="submit" className="w-full">
             Salvar Obrigação
           </Button>
