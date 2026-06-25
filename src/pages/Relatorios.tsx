@@ -61,10 +61,11 @@ export default function Relatorios() {
   }, [assets, selectedType, selectedCategory])
 
   const getAssetValue = (asset: any, dateStr: string, events: any[]) => {
+    if (!dateStr) return 0
     let val = 0
     let found = false
     for (let i = events.length - 1; i >= 0; i--) {
-      if (events[i].date.substring(0, 10) <= dateStr) {
+      if (events[i].date && events[i].date.substring(0, 10) <= dateStr) {
         val = events[i].value
         found = true
         break
@@ -116,9 +117,9 @@ export default function Relatorios() {
         value: a.purchase_price ?? 0,
       }))
 
-    const allEvents = [...relevantHistory, ...acquisitions].sort((a, b) =>
-      a.date.localeCompare(b.date),
-    )
+    const allEvents = [...relevantHistory, ...acquisitions]
+      .filter((e) => e && e.date)
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)))
 
     const eventsByAsset = new Map<string, any[]>()
     allEvents.forEach((e) => {
@@ -141,28 +142,33 @@ export default function Relatorios() {
     const isPositive = difference >= 0
 
     const chartData = []
-    let [year, month] = startDate.substring(0, 7).split('-').map(Number)
-    const [endYear, endMonthNum] = endDate.substring(0, 7).split('-').map(Number)
 
-    if (year < endYear || (year === endYear && month <= endMonthNum)) {
-      while (year < endYear || (year === endYear && month <= endMonthNum)) {
-        const m = `${year}-${month.toString().padStart(2, '0')}`
-        const dateForMonth = m === endDate.substring(0, 7) ? endDate : `${m}-28`
+    if (startDate && endDate && startDate.length >= 7 && endDate.length >= 7) {
+      let [year, month] = startDate.substring(0, 7).split('-').map(Number)
+      const [endYear, endMonthNum] = endDate.substring(0, 7).split('-').map(Number)
 
-        let total = 0
-        filteredAssets.forEach((a) => {
-          total += convertValue(
-            getAssetValue(a, dateForMonth, eventsByAsset.get(a.id) || []),
-            a.currency,
-            currency,
-          )
-        })
-        chartData.push({ date: m, value: total })
+      if (year && month && endYear && endMonthNum) {
+        if (year < endYear || (year === endYear && month <= endMonthNum)) {
+          while (year < endYear || (year === endYear && month <= endMonthNum)) {
+            const m = `${year}-${month.toString().padStart(2, '0')}`
+            const dateForMonth = m === endDate.substring(0, 7) ? endDate : `${m}-28`
 
-        month++
-        if (month > 12) {
-          month = 1
-          year++
+            let total = 0
+            filteredAssets.forEach((a) => {
+              total += convertValue(
+                getAssetValue(a, dateForMonth, eventsByAsset.get(a.id) || []),
+                a.currency,
+                currency,
+              )
+            })
+            chartData.push({ date: m, value: total })
+
+            month++
+            if (month > 12) {
+              month = 1
+              year++
+            }
+          }
         }
       }
     }
@@ -206,10 +212,10 @@ export default function Relatorios() {
       const catName = categories.find((c) => c.id === a.category)?.name || 'Sem Categoria'
 
       rows.push([
-        `"${a.name}"`,
-        a.type,
+        `"${a.name || ''}"`,
+        a.type || '',
         `"${catName}"`,
-        currency,
+        currency || '',
         sValConv.toFixed(2),
         eValConv.toFixed(2),
         diff.toFixed(2),
@@ -222,7 +228,10 @@ export default function Relatorios() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.setAttribute('href', url)
-    link.setAttribute('download', `relatorio_patrimonio_${startDate}_${endDate}.csv`)
+    link.setAttribute(
+      'download',
+      `relatorio_patrimonio_${startDate || 'inicio'}_${endDate || 'fim'}.csv`,
+    )
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
