@@ -4,16 +4,33 @@ import { getLiabilities } from '@/services/liabilities'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency, useCurrency, convertValue } from '@/hooks/use-currency'
 import { ArrowDownRight, ArrowUpRight, Calendar as CalendarIcon, Clock } from 'lucide-react'
+import { useRealtime } from '@/hooks/use-realtime'
+import { AddReceivableDialog } from '@/components/AddReceivableDialog'
+import { AddLiabilityDialog } from '@/components/AddLiabilityDialog'
+
+const FREQUENCY_LABELS: Record<string, string> = {
+  'one-time': 'Única',
+  monthly: 'Mensal',
+  quarterly: 'Trimestral',
+  yearly: 'Anual',
+}
 
 export default function Fluxo() {
   const [receivables, setReceivables] = useState<any[]>([])
   const [liabilities, setLiabilities] = useState<any[]>([])
   const { currency } = useCurrency()
 
-  useEffect(() => {
+  const loadData = () => {
     getReceivables().then(setReceivables)
     getLiabilities().then(setLiabilities)
+  }
+
+  useEffect(() => {
+    loadData()
   }, [])
+
+  useRealtime('receivables', loadData)
+  useRealtime('liabilities', loadData)
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -25,11 +42,14 @@ export default function Fluxo() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <Card className="border border-border/50 shadow-elevation bg-white dark:bg-slate-900 overflow-hidden">
           <CardHeader className="border-b border-border/40 bg-emerald-50/50 dark:bg-emerald-950/20 pb-5">
-            <div className="flex items-center gap-3 text-emerald-600">
-              <div className="p-2 bg-emerald-100 dark:bg-emerald-900/50 rounded-full">
-                <ArrowUpRight size={20} />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 text-emerald-600">
+                <div className="p-2 bg-emerald-100 dark:bg-emerald-900/50 rounded-full">
+                  <ArrowUpRight size={20} />
+                </div>
+                <CardTitle className="font-serif text-xl">Previsão de Entradas</CardTitle>
               </div>
-              <CardTitle className="font-serif text-xl">Previsão de Entradas</CardTitle>
+              <AddReceivableDialog />
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -41,9 +61,15 @@ export default function Fluxo() {
                 >
                   <div>
                     <p className="font-medium text-slate-800 dark:text-slate-200">{r.source}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1.5">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1.5">
+                      {r.expected_date && (
+                        <div className="flex items-center gap-1">
+                          <CalendarIcon size={12} />{' '}
+                          {new Date(r.expected_date).toLocaleDateString()}
+                        </div>
+                      )}
                       <div className="flex items-center gap-1">
-                        <Clock size={12} /> {r.frequency}
+                        <Clock size={12} /> {FREQUENCY_LABELS[r.frequency] || r.frequency}
                       </div>
                     </div>
                   </div>
@@ -63,11 +89,14 @@ export default function Fluxo() {
 
         <Card className="border border-border/50 shadow-elevation bg-white dark:bg-slate-900 overflow-hidden">
           <CardHeader className="border-b border-border/40 bg-rose-50/50 dark:bg-rose-950/20 pb-5">
-            <div className="flex items-center gap-3 text-rose-600">
-              <div className="p-2 bg-rose-100 dark:bg-rose-900/50 rounded-full">
-                <ArrowDownRight size={20} />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 text-rose-600">
+                <div className="p-2 bg-rose-100 dark:bg-rose-900/50 rounded-full">
+                  <ArrowDownRight size={20} />
+                </div>
+                <CardTitle className="font-serif text-xl">Passivos e Obrigações</CardTitle>
               </div>
-              <CardTitle className="font-serif text-xl">Passivos e Obrigações</CardTitle>
+              <AddLiabilityDialog />
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -79,7 +108,12 @@ export default function Fluxo() {
                 >
                   <div>
                     <p className="font-medium text-slate-800 dark:text-slate-200">{l.name}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1.5">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1.5">
+                      {l.due_date && (
+                        <div className="flex items-center gap-1">
+                          <CalendarIcon size={12} /> {new Date(l.due_date).toLocaleDateString()}
+                        </div>
+                      )}
                       <span>
                         Saldo Restante:{' '}
                         {formatCurrency(
