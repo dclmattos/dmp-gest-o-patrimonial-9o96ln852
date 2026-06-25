@@ -159,31 +159,87 @@ export default function Index() {
   }, [filteredAssets, selectedType, categories, currency])
 
   const evolutionData = useMemo(() => {
-    if (!valuationHistory) return []
-    const assetCurrencyMap = new Map(assets.map((a) => [a.id, a.currency]))
+    if (!filteredAssets.length) return []
+
+    const assetCurrencyMap = new Map(filteredAssets.map((a) => [a.id, a.currency]))
     const filteredAssetsIds = new Set(filteredAssets.map((a) => a.id))
 
-    const historyByMonth = valuationHistory
-      .filter((vh) => filteredAssetsIds.has(vh.asset))
-      .reduce(
-        (acc, vh) => {
-          if (!vh.date) return acc
-          const month = vh.date.substring(0, 7)
-          acc[month] =
-            (acc[month] || 0) +
-            convertValue(vh.value, assetCurrencyMap.get(vh.asset) || 'BRL', currency)
-          return acc
-        },
-        {} as Record<string, number>,
-      )
-
-    return Object.entries(historyByMonth)
-      .map(([date, value]) => ({
-        date,
-        value,
+    const relevantHistory = (valuationHistory || []).filter(
+      (vh) => filteredAssetsIds.has(vh.asset) && vh.date,
+    )
+    const acquisitions = filteredAssets
+      .filter((a) => a.acquisition_date)
+      .map((a) => ({
+        asset: a.id,
+        date: a.acquisition_date,
+        value: a.purchase_price ?? 0,
       }))
-      .sort((a, b) => a.date.localeCompare(b.date))
-  }, [valuationHistory, filteredAssets, assets, currency])
+
+    const allEvents = [...relevantHistory, ...acquisitions].sort((a, b) =>
+      a.date.localeCompare(b.date),
+    )
+
+    const currentMonth = new Date().toISOString().substring(0, 7)
+    let firstMonth = currentMonth
+    if (allEvents.length > 0 && allEvents[0].date.substring(0, 7) < currentMonth) {
+      firstMonth = allEvents[0].date.substring(0, 7)
+    }
+
+    const allMonths = []
+    let [year, month] = firstMonth.split('-').map(Number)
+    const [endYear, endMonth] = currentMonth.split('-').map(Number)
+
+    while (year < endYear || (year === endYear && month <= endMonth)) {
+      allMonths.push(`${year}-${month.toString().padStart(2, '0')}`)
+      month++
+      if (month > 12) {
+        month = 1
+        year++
+      }
+    }
+
+    const eventsByAsset = new Map<string, Array<{ month: string; value: number }>>()
+    allEvents.forEach((e) => {
+      const m = e.date.substring(0, 7)
+      if (!eventsByAsset.has(e.asset)) eventsByAsset.set(e.asset, [])
+      eventsByAsset.get(e.asset)!.push({ month: m, value: e.value })
+    })
+
+    const data = allMonths.map((m) => {
+      let totalValue = 0
+      filteredAssets.forEach((asset) => {
+        const events = eventsByAsset.get(asset.id) || []
+        let latestValue = 0
+        let foundEvent = false
+        for (let i = events.length - 1; i >= 0; i--) {
+          if (events[i].month <= m) {
+            latestValue = events[i].value
+            foundEvent = true
+            break
+          }
+        }
+
+        if (!foundEvent && events.length === 0) {
+          if (asset.acquisition_date && asset.acquisition_date.substring(0, 7) <= m) {
+            latestValue = asset.purchase_price || asset.current_valuation || 0
+          } else if (!asset.acquisition_date) {
+            latestValue = m === currentMonth ? asset.current_valuation || 0 : 0
+          }
+        } else if (!foundEvent) {
+          latestValue = 0
+        }
+
+        if (m === currentMonth) {
+          latestValue = asset.current_valuation || 0
+        }
+
+        totalValue += convertValue(latestValue, assetCurrencyMap.get(asset.id) || 'BRL', currency)
+      })
+      return { date: m, value: totalValue }
+    })
+
+    return data
+  }, [valuationHistory, filteredAssets, currency])
 
   return (
     <div className="space-y-8 animate-fade-in-up">
@@ -374,6 +430,8 @@ export default function Index() {
                           tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
                           tickFormatter={(val) =>
                             new Intl.NumberFormat('pt-BR', {
+                              style: 'currency',
+                              currency,
                               notation: 'compact',
                               compactDisplay: 'short',
                               maximumFractionDigits: 1,
@@ -411,7 +469,7 @@ export default function Index() {
               ) : (
                 <div className="h-[250px] w-full flex items-center justify-center border border-dashed rounded-lg">
                   <p className="text-muted-foreground text-sm">
-                    Nenhum histórico encontrado para este filtro.
+                    Dados não disponíveis para o filtro atual.
                   </p>
                 </div>
               )}
