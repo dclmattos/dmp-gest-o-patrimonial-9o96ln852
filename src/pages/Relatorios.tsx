@@ -21,7 +21,7 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { Download, TrendingUp, TrendingDown, Wallet, Calendar } from 'lucide-react'
 
 export default function Relatorios() {
-  const { assets, valuationHistory } = useDashboardData()
+  const { assets } = useDashboardData()
   const { currency } = useCurrency()
 
   const [categories, setCategories] = useState<any[]>([])
@@ -60,35 +60,26 @@ export default function Relatorios() {
     })
   }, [assets, selectedType, selectedCategory])
 
-  const getAssetValue = (asset: any, dateStr: string, events: any[]) => {
+  const getInterpolatedValue = (asset: any, dateStr: string) => {
     if (!dateStr) return 0
-    let val = 0
-    let found = false
-    for (let i = events.length - 1; i >= 0; i--) {
-      if (events[i].date && events[i].date.substring(0, 10) <= dateStr) {
-        val = events[i].value
-        found = true
-        break
-      }
+    const t = new Date(`${dateStr}T00:00:00Z`).getTime()
+    const t_now = new Date(`${new Date().toISOString().substring(0, 10)}T00:00:00Z`).getTime()
+
+    if (!asset.acquisition_date) {
+      if (t >= t_now) return asset.current_valuation ?? 0
+      return asset.current_valuation ?? 0
     }
 
-    const today = new Date().toISOString().substring(0, 10)
+    const t_start = new Date(`${asset.acquisition_date.substring(0, 10)}T00:00:00Z`).getTime()
 
-    if (!found) {
-      if (asset.acquisition_date && asset.acquisition_date.substring(0, 10) <= dateStr) {
-        val = asset.purchase_price ?? asset.current_valuation ?? 0
-      } else if (!asset.acquisition_date) {
-        if (dateStr >= today) {
-          val = asset.current_valuation ?? 0
-        }
-      }
-    }
+    if (t < t_start) return 0
+    if (t >= t_now) return asset.current_valuation ?? 0
+    if (t_start >= t_now) return asset.purchase_price ?? asset.current_valuation ?? 0
 
-    if (dateStr >= today) {
-      val = asset.current_valuation ?? val
-    }
+    const purchasePrice = asset.purchase_price ?? 0
+    const currentValuation = asset.current_valuation ?? 0
 
-    return val
+    return purchasePrice + (currentValuation - purchasePrice) * ((t - t_start) / (t_now - t_start))
   }
 
   const reportData = useMemo(() => {
@@ -100,40 +91,15 @@ export default function Relatorios() {
         percentage: 0,
         isPositive: true,
         chartData: [],
-        eventsByAsset: new Map(),
       }
     }
-
-    const filteredAssetsIds = new Set(filteredAssets.map((a) => a.id))
-
-    const relevantHistory = (valuationHistory || []).filter(
-      (vh) => filteredAssetsIds.has(vh.asset) && vh.date,
-    )
-    const acquisitions = filteredAssets
-      .filter((a) => a.acquisition_date)
-      .map((a) => ({
-        asset: a.id,
-        date: a.acquisition_date,
-        value: a.purchase_price ?? 0,
-      }))
-
-    const allEvents = [...relevantHistory, ...acquisitions]
-      .filter((e) => e && e.date)
-      .sort((a, b) => String(a.date).localeCompare(String(b.date)))
-
-    const eventsByAsset = new Map<string, any[]>()
-    allEvents.forEach((e) => {
-      if (!eventsByAsset.has(e.asset)) eventsByAsset.set(e.asset, [])
-      eventsByAsset.get(e.asset)!.push(e)
-    })
 
     let startTotalValue = 0
     let endTotalValue = 0
 
     filteredAssets.forEach((a) => {
-      const events = eventsByAsset.get(a.id) || []
-      startTotalValue += convertValue(getAssetValue(a, startDate, events), a.currency, currency)
-      endTotalValue += convertValue(getAssetValue(a, endDate, events), a.currency, currency)
+      startTotalValue += convertValue(getInterpolatedValue(a, startDate), a.currency, currency)
+      endTotalValue += convertValue(getInterpolatedValue(a, endDate), a.currency, currency)
     })
 
     const difference = endTotalValue - startTotalValue
@@ -143,23 +109,33 @@ export default function Relatorios() {
 
     const chartData = []
 
-    if (startDate && endDate && startDate.length >= 7 && endDate.length >= 7) {
-      let [year, month] = startDate.substring(0, 7).split('-').map(Number)
-      const [endYear, endMonthNum] = endDate.substring(0, 7).split('-').map(Number)
+    let chartStart = ''
+    const validAcqDates = filteredAssets
+      .map((a) => a.acquisition_date)
+      .filter(Boolean)
+      .sort()
+    if (validAcqDates.length > 0) {
+      chartStart = validAcqDates[0].substring(0, 10)
+    } else {
+      const d = new Date()
+      d.setMonth(d.getMonth() - 6)
+      chartStart = d.toISOString().substring(0, 10)
+    }
+    const chartEnd = new Date().toISOString().substring(0, 10)
+
+    if (chartStart && chartEnd && chartStart.length >= 7 && chartEnd.length >= 7) {
+      let [year, month] = chartStart.substring(0, 7).split('-').map(Number)
+      const [endYear, endMonthNum] = chartEnd.substring(0, 7).split('-').map(Number)
 
       if (year && month && endYear && endMonthNum) {
         if (year < endYear || (year === endYear && month <= endMonthNum)) {
           while (year < endYear || (year === endYear && month <= endMonthNum)) {
             const m = `${year}-${month.toString().padStart(2, '0')}`
-            const dateForMonth = m === endDate.substring(0, 7) ? endDate : `${m}-28`
+            const dateForMonth = m === chartEnd.substring(0, 7) ? chartEnd : `${m}-28`
 
             let total = 0
             filteredAssets.forEach((a) => {
-              total += convertValue(
-                getAssetValue(a, dateForMonth, eventsByAsset.get(a.id) || []),
-                a.currency,
-                currency,
-              )
+              total += convertValue(getInterpolatedValue(a, dateForMonth), a.currency, currency)
             })
             chartData.push({ date: m, value: total })
 
@@ -180,12 +156,10 @@ export default function Relatorios() {
       percentage,
       isPositive,
       chartData,
-      eventsByAsset,
     }
-  }, [filteredAssets, valuationHistory, currency, startDate, endDate])
+  }, [filteredAssets, currency, startDate, endDate])
 
   const handleExport = () => {
-    const { eventsByAsset } = reportData
     const rows = [
       [
         'Ativo',
@@ -200,9 +174,8 @@ export default function Relatorios() {
     ]
 
     filteredAssets.forEach((a) => {
-      const events = eventsByAsset.get(a.id) || []
-      const sVal = getAssetValue(a, startDate, events)
-      const eVal = getAssetValue(a, endDate, events)
+      const sVal = getInterpolatedValue(a, startDate)
+      const eVal = getInterpolatedValue(a, endDate)
       const sValConv = convertValue(sVal, a.currency, currency)
       const eValConv = convertValue(eVal, a.currency, currency)
 
