@@ -9,6 +9,7 @@ import * as Icons from 'lucide-react'
 import { useEffect } from 'react'
 import { CategoryManager } from '@/components/CategoryManager'
 import { AssetDialog } from '@/components/AssetDialog'
+import { EditAssetDialog } from '@/components/EditAssetDialog'
 import { Button } from '@/components/ui/button'
 import { getAssetCategories } from '@/services/asset_categories'
 import { deleteAsset } from '@/services/assets'
@@ -182,6 +183,7 @@ export default function Patrimonio() {
                       <div className="text-slate-400 group-hover:text-primary transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50">
                         {getIcon(asset.type)}
                       </div>
+                      <EditAssetDialog asset={asset} categories={categories} />
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <button className="text-slate-400 hover:text-red-500 transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50 cursor-pointer">
