@@ -198,23 +198,18 @@ export default function Index() {
     const relevantHistory = (valuationHistory || []).filter(
       (vh) => filteredAssetsIds.has(vh.asset) && vh.date,
     )
-    const acquisitions = filteredAssets
-      .filter((a) => a.acquisition_date)
-      .map((a) => ({
-        asset: a.id,
-        date: a.acquisition_date,
-        value: a.purchase_price ?? 0,
-      }))
-
-    const allEvents = [...relevantHistory, ...acquisitions].sort((a, b) =>
-      a.date.localeCompare(b.date),
-    )
+    const allEvents = [...relevantHistory].sort((a, b) => a.date.localeCompare(b.date))
 
     const eventsByAsset = new Map<string, Array<{ month: string; value: number }>>()
     allEvents.forEach((e) => {
       const m = e.date.substring(0, 7)
       if (!eventsByAsset.has(e.asset)) eventsByAsset.set(e.asset, [])
-      eventsByAsset.get(e.asset)!.push({ month: m, value: e.value })
+      const arr = eventsByAsset.get(e.asset)!
+      if (arr.length > 0 && arr[arr.length - 1].month === m) {
+        arr[arr.length - 1].value = e.value
+      } else {
+        arr.push({ month: m, value: e.value })
+      }
     })
 
     const currentMonthStr = now.toISOString().substring(0, 7)
@@ -233,17 +228,21 @@ export default function Index() {
           }
         }
 
-        if (!foundEvent && events.length === 0) {
-          if (asset.acquisition_date && asset.acquisition_date.substring(0, 7) <= m) {
+        if (!foundEvent) {
+          const startMonth = asset.acquisition_date
+            ? asset.acquisition_date.substring(0, 7)
+            : asset.created
+              ? asset.created.substring(0, 7)
+              : null
+
+          if (startMonth && startMonth <= m) {
             latestValue = asset.purchase_price || asset.current_valuation || 0
-          } else if (!asset.acquisition_date) {
-            latestValue = m >= currentMonthStr ? asset.current_valuation || 0 : 0
+          } else {
+            latestValue = 0
           }
-        } else if (!foundEvent) {
-          latestValue = 0
         }
 
-        if (m >= currentMonthStr) {
+        if (m === currentMonthStr) {
           latestValue = asset.current_valuation || latestValue
         }
 
