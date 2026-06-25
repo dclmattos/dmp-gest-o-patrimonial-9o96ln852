@@ -43,7 +43,7 @@ export default function Auth() {
                 DMP Gestão Patrimonial
               </h1>
               <p className="text-sm font-light text-slate-300 drop-shadow-md">
-                Inteligência Patrimonial Exclusiva
+                Inteligência Patrimonial Estratégica
               </p>
             </div>
           </div>
