@@ -27,26 +27,24 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-slate-50 relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-slate-950 to-slate-950 z-0" />
+      {/* Main Background Image */}
+      <img
+        src="https://img.usecurling.com/p/1920/1080?q=abstract%20minimalist%20architecture&color=black&dpr=2"
+        alt="Strategic Wealth Management"
+        className="absolute inset-0 w-full h-full object-cover z-0 opacity-40 transition-transform duration-1000"
+      />
+      {/* Gradient Overlays for Form Legibility */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent z-0" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/15 via-slate-950/50 to-slate-950/90 z-0" />
 
-      <div className="z-10 w-full max-w-md p-6 sm:p-8 space-y-6 sm:space-y-8 bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl animate-fade-in-up">
-        <div className="flex flex-col w-full">
-          <div className="relative w-full h-40 sm:h-48 rounded-xl overflow-hidden border border-slate-700/50 shadow-inner group bg-slate-800">
-            <img
-              src="https://img.usecurling.com/p/800/600?q=luxury%20business%20strategy&color=black&dpr=2"
-              alt="Strategic Wealth Management"
-              className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent" />
-            <div className="absolute bottom-0 left-0 w-full p-5 flex flex-col">
-              <h1 className="text-3xl font-serif font-medium text-white tracking-tight drop-shadow-lg">
-                DMP Gestão Patrimonial
-              </h1>
-              <p className="text-sm font-light text-slate-300 drop-shadow-md">
-                Inteligência Patrimonial Estratégica
-              </p>
-            </div>
-          </div>
+      <div className="z-10 w-full max-w-md p-8 sm:p-10 space-y-8 bg-slate-900/60 backdrop-blur-xl border border-slate-800/50 rounded-2xl shadow-2xl animate-fade-in-up">
+        <div className="flex flex-col w-full text-center space-y-2">
+          <h1 className="text-3xl font-serif font-medium text-white tracking-tight drop-shadow-lg">
+            DMP Gestão Patrimonial
+          </h1>
+          <p className="text-sm font-light text-slate-300 drop-shadow-md">
+            Inteligência Patrimonial Estratégica
+          </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
