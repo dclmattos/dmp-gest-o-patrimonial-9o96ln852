@@ -31,9 +31,11 @@ export default function Patrimonio() {
 
   useEffect(() => {
     if (isAdmin) {
-      getUsers().then((data) => setClients(data.filter((u) => u.role === 'user')))
+      getUsers().then((data) =>
+        setClients(data.filter((u) => u.role === 'user' || u.id === user?.id)),
+      )
     }
-  }, [isAdmin])
+  }, [isAdmin, user?.id])
 
   useEffect(() => {
     if (selectedClient) {
@@ -135,7 +137,7 @@ export default function Patrimonio() {
               <SelectContent>
                 {clients.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
-                    {c.name || c.email}
+                    {c.name || c.email} {c.id === user?.id && '(Você)'}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -175,7 +177,7 @@ export default function Patrimonio() {
               <SelectContent>
                 {clients.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
-                    {c.name || c.email}
+                    {c.name || c.email} {c.id === user?.id && '(Você)'}
                   </SelectItem>
                 ))}
               </SelectContent>
