@@ -44,7 +44,25 @@ export default function Patrimonio() {
   }, [])
   useRealtime('asset_categories', loadCategories)
 
-  const { assets } = useDashboardData()
+  const { assets: dashboardAssets } = useDashboardData()
+  const [localAssets, setLocalAssets] = useState<any[]>([])
+
+  useEffect(() => {
+    setLocalAssets(dashboardAssets || [])
+  }, [dashboardAssets])
+
+  useRealtime('assets', (e) => {
+    if (e.action === 'update') {
+      setLocalAssets((prev) => prev.map((a) => (a.id === e.record.id ? e.record : a)))
+    } else if (e.action === 'create') {
+      setLocalAssets((prev) => [...prev, e.record])
+    } else if (e.action === 'delete') {
+      setLocalAssets((prev) => prev.filter((a) => a.id !== e.record.id))
+    }
+  })
+
+  const assets = localAssets
+
   const { currency } = useCurrency()
   const [tab, setTab] = useState('all')
   const { toast } = useToast()
@@ -183,7 +201,15 @@ export default function Patrimonio() {
                       <div className="text-slate-400 group-hover:text-primary transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50">
                         {getIcon(asset.type)}
                       </div>
-                      <EditAssetDialog asset={asset} categories={categories} />
+                      <EditAssetDialog
+                        asset={asset}
+                        categories={categories}
+                        onUpdate={(updated) => {
+                          setLocalAssets((prev) =>
+                            prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)),
+                          )
+                        }}
+                      />
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <button className="text-slate-400 hover:text-red-500 transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50 cursor-pointer">

@@ -22,10 +22,20 @@ import { Pencil } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { updateAsset } from '@/services/assets'
 import { useToast } from '@/hooks/use-toast'
+import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 
-export function EditAssetDialog({ asset, categories }: { asset: any; categories: any[] }) {
+export function EditAssetDialog({
+  asset,
+  categories,
+  onUpdate,
+}: {
+  asset: any
+  categories: any[]
+  onUpdate?: (asset: any) => void
+}) {
   const [open, setOpen] = useState(false)
   const { toast } = useToast()
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const [name, setName] = useState(asset.name)
   const [type, setType] = useState(asset.type)
@@ -59,8 +69,9 @@ export function EditAssetDialog({ asset, categories }: { asset: any; categories:
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFieldErrors({})
     try {
-      await updateAsset(asset.id, {
+      const dataToUpdate = {
         name,
         type,
         subtype,
@@ -71,14 +82,23 @@ export function EditAssetDialog({ asset, categories }: { asset: any; categories:
         location,
         notes,
         category: categoryId === 'none' ? null : categoryId,
-      })
+      }
+
+      if (onUpdate) {
+        onUpdate({ ...asset, ...dataToUpdate })
+      }
+
+      await updateAsset(asset.id, dataToUpdate)
       setOpen(false)
       toast({ title: 'Sucesso', description: 'Ativo atualizado com sucesso.' })
     } catch (err) {
-      console.error(err)
+      setFieldErrors(extractFieldErrors(err))
+      if (onUpdate) {
+        onUpdate(asset) // Revert optimistic update
+      }
       toast({
         title: 'Erro',
-        description: 'Falha ao atualizar ativo. Tente novamente.',
+        description: 'Falha ao atualizar ativo. Verifique os campos.',
         variant: 'destructive',
       })
     }
@@ -187,7 +207,11 @@ export function EditAssetDialog({ asset, categories }: { asset: any; categories:
                   step="0.01"
                   value={valuation}
                   onChange={(e) => setValuation(e.target.value)}
+                  className={fieldErrors.current_valuation ? 'border-red-500' : ''}
                 />
+                {fieldErrors.current_valuation && (
+                  <p className="text-sm text-red-500">{fieldErrors.current_valuation}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Valor de Compra</Label>
@@ -196,7 +220,11 @@ export function EditAssetDialog({ asset, categories }: { asset: any; categories:
                   step="0.01"
                   value={purchasePrice}
                   onChange={(e) => setPurchasePrice(e.target.value)}
+                  className={fieldErrors.purchase_price ? 'border-red-500' : ''}
                 />
+                {fieldErrors.purchase_price && (
+                  <p className="text-sm text-red-500">{fieldErrors.purchase_price}</p>
+                )}
               </div>
             </div>
 
