@@ -108,7 +108,7 @@ export function AssetCard({ asset, categories, onDelete, onUpdate }: AssetCardPr
 
         <div className="mt-6 pt-4 border-t border-border/40 space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Valor de Compra</span>
+            <span className="text-muted-foreground">Valor de Base de Compra</span>
             <span className="font-medium">
               {formatCurrency(asset.purchase_price || 0, asset.currency)}
             </span>

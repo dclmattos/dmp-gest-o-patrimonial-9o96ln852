@@ -32,18 +32,38 @@ export function useDashboardData() {
     load()
   }, [])
 
-  useRealtime('assets', () => {
-    load()
+  useRealtime('assets', (e) => {
+    if (e.action === 'create') setAssets((prev) => [...prev, e.record])
+    else if (e.action === 'update')
+      setAssets((prev) => prev.map((item) => (item.id === e.record.id ? e.record : item)))
+    else if (e.action === 'delete')
+      setAssets((prev) => prev.filter((item) => item.id !== e.record.id))
+    else load()
   })
-  useRealtime('liabilities', () => {
-    load()
+  useRealtime('liabilities', (e) => {
+    if (e.action === 'create') setLiabilities((prev) => [...prev, e.record])
+    else if (e.action === 'update')
+      setLiabilities((prev) => prev.map((item) => (item.id === e.record.id ? e.record : item)))
+    else if (e.action === 'delete')
+      setLiabilities((prev) => prev.filter((item) => item.id !== e.record.id))
+    else load()
   })
-  useRealtime('receivables', () => {
-    load()
+  useRealtime('receivables', (e) => {
+    if (e.action === 'create') setReceivables((prev) => [...prev, e.record])
+    else if (e.action === 'update')
+      setReceivables((prev) => prev.map((item) => (item.id === e.record.id ? e.record : item)))
+    else if (e.action === 'delete')
+      setReceivables((prev) => prev.filter((item) => item.id !== e.record.id))
+    else load()
   })
-  useRealtime('valuation_history', () => {
-    load()
+  useRealtime('valuation_history', (e) => {
+    if (e.action === 'create') setValuationHistory((prev) => [...prev, e.record])
+    else if (e.action === 'update')
+      setValuationHistory((prev) => prev.map((item) => (item.id === e.record.id ? e.record : item)))
+    else if (e.action === 'delete')
+      setValuationHistory((prev) => prev.filter((item) => item.id !== e.record.id))
+    else load()
   })
 
-  return { assets, liabilities, receivables, valuationHistory }
+  return { assets, liabilities, receivables, valuationHistory, refetch: load }
 }

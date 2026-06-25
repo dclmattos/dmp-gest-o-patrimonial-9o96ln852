@@ -504,7 +504,7 @@ export default function Index() {
           ))}
           {filteredAssets.length === 0 && (
             <div className="col-span-full py-12 text-center text-muted-foreground border border-dashed rounded-lg bg-card">
-              Nenhum ativo encontrado nesta categoria.
+              Nenhum ativo encontrado para o filtro selecionado.
             </div>
           )}
         </div>
