@@ -40,7 +40,7 @@ export default function Auth() {
             <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent" />
             <div className="absolute bottom-0 left-0 w-full p-5 flex flex-col">
               <h1 className="text-3xl font-serif font-medium text-white tracking-tight drop-shadow-lg">
-                Gestor VIP
+                DMP Gestão Patrimonial
               </h1>
               <p className="text-sm font-light text-slate-300 drop-shadow-md">
                 Inteligência Patrimonial Exclusiva
