@@ -29,6 +29,7 @@ export default {
         sans: ['Inter', 'sans-serif'],
         serif: ['Playfair Display', 'serif'],
         brand: ['"Cormorant Garamond"', 'serif'],
+        exclusive: ['"Bodoni Moda"', 'serif'],
       },
       colors: {
         border: 'hsl(var(--border))',
