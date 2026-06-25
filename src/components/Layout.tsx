@@ -20,6 +20,7 @@ import {
   MessageSquare,
   LogOut,
   Search,
+  PieChart,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -45,7 +46,9 @@ function CurrencyToggle() {
 }
 
 export default function Layout() {
-  const { signOut } = useAuth()
+  const { signOut, user } = useAuth()
+  const isAdmin = user?.role === 'admin'
+
   return (
     <SidebarProvider>
       <Sidebar variant="sidebar" className="bg-slate-950 border-r-slate-800 text-slate-300 dark">
@@ -61,53 +64,71 @@ export default function Layout() {
         </SidebarHeader>
         <SidebarContent className="px-3 mt-6">
           <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link to="/" className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50">
-                  <Home /> <span>Resumo</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link
-                  to="/patrimonio"
-                  className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
-                >
-                  <Briefcase /> <span>Patrimônio</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link
-                  to="/fluxo"
-                  className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
-                >
-                  <ArrowRightLeft /> <span>Fluxo de Caixa</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link
-                  to="/evolucao"
-                  className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
-                >
-                  <TrendingUp /> <span>Evolução</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link
-                  to="/relatorios"
-                  className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
-                >
-                  <FileText /> <span>Relatórios</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            {isAdmin ? (
+              <>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link
+                      to="/"
+                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
+                    >
+                      <Home /> <span>Resumo Global</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link
+                      to="/patrimonio"
+                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
+                    >
+                      <Briefcase /> <span>Patrimônio</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link
+                      to="/fluxo"
+                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
+                    >
+                      <ArrowRightLeft /> <span>Fluxo de Caixa</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link
+                      to="/evolucao"
+                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
+                    >
+                      <TrendingUp /> <span>Evolução</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link
+                      to="/relatorios"
+                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
+                    >
+                      <FileText /> <span>Relatórios</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </>
+            ) : (
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link
+                    to="/my-portfolio"
+                    className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
+                  >
+                    <PieChart /> <span>Meu Portfólio</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
             <SidebarMenuItem className="mt-8">
               <SidebarMenuButton
                 asChild
@@ -134,8 +155,13 @@ export default function Layout() {
         <header className="h-16 px-6 border-b border-border/40 flex items-center justify-between shrink-0 bg-background/80 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-4">
             <h1 className="font-serif text-xl hidden sm:block text-slate-800 dark:text-slate-200">
-              Painel de Controle
+              {isAdmin ? 'Painel de Controle' : 'Área do Cliente'}
             </h1>
+            <div className="ml-2 border border-slate-300 dark:border-slate-700/50 px-2 py-0.5 rounded opacity-40 select-none hidden md:block">
+              <span className="font-serif text-[0.6rem] tracking-[0.25em] uppercase text-slate-600 dark:text-slate-300 mix-blend-multiply dark:mix-blend-screen">
+                DMP Gestão Patrimonial
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="relative hidden md:block">

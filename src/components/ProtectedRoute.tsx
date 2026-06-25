@@ -1,9 +1,10 @@
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { Briefcase } from 'lucide-react'
 
 export function ProtectedRoute() {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading, user } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -17,5 +18,18 @@ export function ProtectedRoute() {
   }
 
   if (!isAuthenticated) return <Navigate to="/auth" replace />
+
+  if (
+    user?.role === 'user' &&
+    location.pathname !== '/my-portfolio' &&
+    location.pathname !== '/advisor'
+  ) {
+    return <Navigate to="/my-portfolio" replace />
+  }
+
+  if (user?.role === 'admin' && location.pathname === '/my-portfolio') {
+    return <Navigate to="/" replace />
+  }
+
   return <Outlet />
 }

@@ -1,3 +1,4 @@
+import { useAuth } from '@/hooks/use-auth'
 import { useDashboardData } from '@/hooks/use-dashboard-data'
 import { useCurrency, convertValue, formatCurrency } from '@/hooks/use-currency'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -43,6 +44,19 @@ export default function Index() {
   const [selectedCategory, setSelectedCategory] = useState<string>(
     () => sessionStorage.getItem('dashboard_category') || 'all',
   )
+  const [selectedUser, setSelectedUser] = useState<string>('all')
+  const [systemUsers, setSystemUsers] = useState<any[]>([])
+
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
+
+  useEffect(() => {
+    if (isAdmin) {
+      import('@/services/users').then(({ getUsers }) => {
+        getUsers().then(setSystemUsers).catch(console.error)
+      })
+    }
+  }, [isAdmin])
 
   useEffect(() => {
     sessionStorage.setItem('dashboard_type', selectedType)
@@ -87,8 +101,16 @@ export default function Index() {
   const filteredAssets = assets.filter((a) => {
     const matchType = selectedType === 'all' || a.type === selectedType
     const matchCategory = selectedCategory === 'all' || a.category === selectedCategory
-    return matchType && matchCategory
+    const matchUser = selectedUser === 'all' || a.user === selectedUser
+    return matchType && matchCategory && matchUser
   })
+
+  const filteredLiabilities = liabilities.filter(
+    (l) => selectedUser === 'all' || l.user === selectedUser,
+  )
+  const filteredReceivables = receivables.filter(
+    (r) => selectedUser === 'all' || r.user === selectedUser,
+  )
 
   const totalAssets = assets.reduce(
     (sum, a) => sum + convertValue(a.current_valuation, a.currency, currency),
@@ -98,7 +120,7 @@ export default function Index() {
     (sum, a) => sum + convertValue(a.current_valuation, a.currency, currency),
     0,
   )
-  const totalLiabilities = liabilities.reduce(
+  const totalLiabilities = filteredLiabilities.reduce(
     (sum, l) => sum + convertValue(l.remaining_balance, 'BRL', currency),
     0,
   )
@@ -329,6 +351,21 @@ export default function Index() {
           </p>
         </div>
         <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-3">
+          {isAdmin && (
+            <Select value={selectedUser} onValueChange={setSelectedUser}>
+              <SelectTrigger className="w-full sm:w-[180px] shadow-sm">
+                <SelectValue placeholder="Todos os Clientes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Clientes</SelectItem>
+                {systemUsers.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.name || u.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Select value={selectedType} onValueChange={setSelectedType}>
             <SelectTrigger className="w-full sm:w-[180px] shadow-sm">
               <SelectValue placeholder="Tipo de Ativo" />
@@ -576,7 +613,7 @@ export default function Index() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {receivables.slice(0, 3).map((r) => (
+              {filteredReceivables.slice(0, 3).map((r) => (
                 <div
                   key={r.id}
                   className="bg-white dark:bg-slate-900 px-4 py-3 rounded-xl border border-emerald-100 dark:border-emerald-900/50 shadow-sm"
@@ -587,7 +624,7 @@ export default function Index() {
                   </p>
                 </div>
               ))}
-              {receivables.length === 0 && (
+              {filteredReceivables.length === 0 && (
                 <p className="text-sm text-muted-foreground">Nenhum fluxo programado.</p>
               )}
             </div>

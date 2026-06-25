@@ -6,13 +6,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 export default function Auth() {
-  const { signIn, isAuthenticated } = useAuth()
+  const { signIn, isAuthenticated, user } = useAuth()
   const [email, setEmail] = useState('dclmattos@gmail.com')
   const [password, setPassword] = useState('Skip@Pass')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  if (isAuthenticated) return <Navigate to="/" replace />
+  if (isAuthenticated) {
+    if (user?.role === 'user') return <Navigate to="/my-portfolio" replace />
+    return <Navigate to="/" replace />
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,11 +49,11 @@ export default function Auth() {
           <div className="absolute -bottom-px -left-px w-2 h-2 border-b border-l border-white/70" />
           <div className="absolute -bottom-px -right-px w-2 h-2 border-b border-r border-white/70" />
 
-          <h1 className="flex flex-col text-center sm:text-left font-exclusive text-white antialiased">
-            <span className="text-4xl sm:text-5xl font-bold tracking-[0.25em] leading-none mb-1">
+          <h1 className="flex flex-col text-center sm:text-left font-serif text-white antialiased opacity-80 mix-blend-screen">
+            <span className="text-4xl sm:text-5xl font-bold tracking-[0.3em] leading-none mb-1 uppercase">
               DMP
             </span>
-            <span className="text-lg sm:text-xl font-medium italic opacity-90 tracking-[0.15em]">
+            <span className="text-sm sm:text-base font-medium italic opacity-90 tracking-[0.2em] uppercase mt-1">
               Gestão Patrimonial
             </span>
           </h1>
