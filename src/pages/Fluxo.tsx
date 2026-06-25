@@ -7,6 +7,22 @@ import { ArrowDownRight, ArrowUpRight, Calendar as CalendarIcon, Clock } from 'l
 import { useRealtime } from '@/hooks/use-realtime'
 import { AddReceivableDialog } from '@/components/AddReceivableDialog'
 import { AddLiabilityDialog } from '@/components/AddLiabilityDialog'
+import { EditReceivableDialog } from '@/components/EditReceivableDialog'
+import { EditLiabilityDialog } from '@/components/EditLiabilityDialog'
+import { Trash2 } from 'lucide-react'
+import { deleteReceivable } from '@/services/receivables'
+import { deleteLiability } from '@/services/liabilities'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { useToast } from '@/hooks/use-toast'
 
 const FREQUENCY_LABELS: Record<string, string> = {
   'one-time': 'Única',
@@ -19,6 +35,12 @@ export default function Fluxo() {
   const [receivables, setReceivables] = useState<any[]>([])
   const [liabilities, setLiabilities] = useState<any[]>([])
   const { currency } = useCurrency()
+  const { toast } = useToast()
+  const [itemToDelete, setItemToDelete] = useState<{
+    type: 'receivable' | 'liability'
+    id: string
+    name: string
+  } | null>(null)
 
   const loadData = () => {
     getReceivables().then(setReceivables)
@@ -31,6 +53,27 @@ export default function Fluxo() {
 
   useRealtime('receivables', loadData)
   useRealtime('liabilities', loadData)
+
+  const handleDelete = async () => {
+    if (!itemToDelete) return
+    try {
+      if (itemToDelete.type === 'receivable') {
+        await deleteReceivable(itemToDelete.id)
+        toast({ title: 'Sucesso', description: 'Entrada removida com sucesso.' })
+      } else {
+        await deleteLiability(itemToDelete.id)
+        toast({ title: 'Sucesso', description: 'Obrigação removida com sucesso.' })
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Erro',
+        description: err.message || 'Erro ao remover item.',
+        variant: 'destructive',
+      })
+    } finally {
+      setItemToDelete(null)
+    }
+  }
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -57,7 +100,7 @@ export default function Fluxo() {
               {receivables.map((r) => (
                 <div
                   key={r.id}
-                  className="p-5 flex items-center justify-between hover:bg-muted/30 transition-colors"
+                  className="group p-5 flex items-center justify-between hover:bg-muted/30 transition-colors"
                 >
                   <div>
                     <p className="font-medium text-slate-800 dark:text-slate-200">{r.source}</p>
@@ -73,9 +116,23 @@ export default function Fluxo() {
                       </div>
                     </div>
                   </div>
-                  <p className="text-emerald-600 font-medium text-lg">
-                    +{formatCurrency(convertValue(r.amount, 'BRL', currency), currency)}
-                  </p>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <EditReceivableDialog receivable={r} />
+                      <button
+                        onClick={() =>
+                          setItemToDelete({ type: 'receivable', id: r.id, name: r.source })
+                        }
+                        className="text-slate-400 hover:text-rose-500 transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50 cursor-pointer"
+                        title="Excluir Entrada"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    <p className="text-emerald-600 font-medium text-lg">
+                      +{formatCurrency(convertValue(r.amount, 'BRL', currency), currency)}
+                    </p>
+                  </div>
                 </div>
               ))}
               {receivables.length === 0 && (
@@ -104,7 +161,7 @@ export default function Fluxo() {
               {liabilities.map((l) => (
                 <div
                   key={l.id}
-                  className="p-5 flex items-center justify-between hover:bg-muted/30 transition-colors"
+                  className="group p-5 flex items-center justify-between hover:bg-muted/30 transition-colors"
                 >
                   <div>
                     <p className="font-medium text-slate-800 dark:text-slate-200">{l.name}</p>
@@ -132,11 +189,28 @@ export default function Fluxo() {
                       </span>
                     </div>
                   </div>
-                  <p className="text-rose-600 font-medium text-lg">
-                    -
-                    {formatCurrency(convertValue(l.monthly_installment, 'BRL', currency), currency)}
-                    <span className="text-sm text-muted-foreground font-normal">/mês</span>
-                  </p>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <EditLiabilityDialog liability={l} />
+                      <button
+                        onClick={() =>
+                          setItemToDelete({ type: 'liability', id: l.id, name: l.name })
+                        }
+                        className="text-slate-400 hover:text-rose-500 transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50 cursor-pointer"
+                        title="Excluir Obrigação"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    <p className="text-rose-600 font-medium text-lg">
+                      -
+                      {formatCurrency(
+                        convertValue(l.monthly_installment, 'BRL', currency),
+                        currency,
+                      )}
+                      <span className="text-sm text-muted-foreground font-normal">/mês</span>
+                    </p>
+                  </div>
                 </div>
               ))}
               {liabilities.length === 0 && (
@@ -148,6 +222,27 @@ export default function Fluxo() {
           </CardContent>
         </Card>
       </div>
+
+      <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A exclusão do item "{itemToDelete?.name}" é permanente e não poderá ser desfeita. Isso
+              afetará as projeções do seu fluxo de caixa.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-rose-600 hover:bg-rose-700 text-white"
+            >
+              Sim, excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
