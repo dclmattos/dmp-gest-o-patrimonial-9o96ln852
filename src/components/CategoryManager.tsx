@@ -66,6 +66,7 @@ export function CategoryManager() {
   const [name, setName] = useState('')
   const [color, setColor] = useState(COLORS[0])
   const [icon, setIcon] = useState(ICONS_LIST[0])
+  const [goalValue, setGoalValue] = useState('')
 
   const loadCategories = async () => {
     try {
@@ -85,10 +86,18 @@ export function CategoryManager() {
     e.preventDefault()
     if (!name.trim() || !user) return
     try {
-      await createAssetCategory({ user: user.id, name, color, icon })
+      const goal = parseFloat(goalValue)
+      await createAssetCategory({
+        user: user.id,
+        name,
+        color,
+        icon,
+        goal_value: !isNaN(goal) && goal > 0 ? goal : 0,
+      })
       setName('')
       setColor(COLORS[0])
       setIcon(ICONS_LIST[0])
+      setGoalValue('')
     } catch (err) {
       console.error(err)
     }
@@ -130,13 +139,26 @@ export function CategoryManager() {
             className="space-y-4 bg-muted/30 p-4 rounded-lg border border-border/50"
           >
             <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-2">
-                <Label>Nome da Categoria</Label>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Ex: Renda Fixa"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nome da Categoria</Label>
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Ex: Renda Fixa"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Meta de Valor (Opcional)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={goalValue}
+                    onChange={(e) => setGoalValue(e.target.value)}
+                    placeholder="Ex: 500000"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -207,7 +229,18 @@ export function CategoryManager() {
                           {/* @ts-expect-error */}
                           <Icon size={16} />
                         </div>
-                        <span className="font-medium">{cat.name}</span>
+                        <span className="font-medium">
+                          {cat.name}
+                          {cat.goal_value > 0 && (
+                            <span className="ml-2 text-xs text-muted-foreground block sm:inline">
+                              Meta:{' '}
+                              {cat.goal_value.toLocaleString('pt-BR', {
+                                style: 'currency',
+                                currency: 'BRL',
+                              })}
+                            </span>
+                          )}
+                        </span>
                       </div>
                       <Button
                         variant="ghost"

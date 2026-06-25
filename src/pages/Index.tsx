@@ -4,12 +4,47 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { ArrowUpRight, Building2, Globe, Wallet } from 'lucide-react'
+import { Progress } from '@/components/ui/progress'
+
+import { useState, useEffect } from 'react'
+import { getAssetCategories } from '@/services/asset_categories'
+import { useRealtime } from '@/hooks/use-realtime'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export default function Index() {
   const { assets, liabilities, receivables } = useDashboardData()
   const { currency } = useCurrency()
+  const [categories, setCategories] = useState<any[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+
+  const loadCategories = async () => {
+    try {
+      const data = await getAssetCategories()
+      setCategories(data)
+    } catch {
+      /* intentionally ignored */
+    }
+  }
+
+  useEffect(() => {
+    loadCategories()
+  }, [])
+  useRealtime('asset_categories', loadCategories)
+
+  const filteredAssets =
+    selectedCategory === 'all' ? assets : assets.filter((a) => a.category === selectedCategory)
 
   const totalAssets = assets.reduce(
+    (sum, a) => sum + convertValue(a.current_valuation, a.currency, currency),
+    0,
+  )
+  const totalFilteredAssets = filteredAssets.reduce(
     (sum, a) => sum + convertValue(a.current_valuation, a.currency, currency),
     0,
   )
@@ -17,33 +52,33 @@ export default function Index() {
     (sum, l) => sum + convertValue(l.remaining_balance, 'BRL', currency),
     0,
   )
-  const netWorth = totalAssets - totalLiabilities
+  const netWorth = selectedCategory === 'all' ? totalAssets - totalLiabilities : totalFilteredAssets
 
   const allocation = [
     {
       name: 'Imóveis',
-      value: assets
+      value: filteredAssets
         .filter((a) => a.type === 'property')
         .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0),
       color: 'hsl(var(--chart-1))',
     },
     {
       name: 'Veículos',
-      value: assets
+      value: filteredAssets
         .filter((a) => a.type === 'vehicle')
         .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0),
       color: 'hsl(var(--chart-2))',
     },
     {
       name: 'Invest. BR',
-      value: assets
+      value: filteredAssets
         .filter((a) => a.type === 'investment')
         .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0),
       color: 'hsl(var(--chart-3))',
     },
     {
       name: 'Internacional',
-      value: assets
+      value: filteredAssets
         .filter((a) => a.type === 'international')
         .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0),
       color: 'hsl(var(--chart-4))',
@@ -52,13 +87,37 @@ export default function Index() {
 
   return (
     <div className="space-y-8 animate-fade-in-up">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
+        <div>
+          <h2 className="text-3xl font-serif tracking-tight">Visão Geral</h2>
+          <p className="text-muted-foreground mt-1">
+            Acompanhe e filtre a evolução do seu patrimônio.
+          </p>
+        </div>
+        <div className="w-full sm:w-auto">
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="w-full sm:w-[240px] shadow-sm">
+              <SelectValue placeholder="Todas as Categorias" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Categorias</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="relative overflow-hidden rounded-2xl bg-slate-950 text-slate-50 p-8 sm:p-12 shadow-elevation">
         <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
           <Globe size={300} />
         </div>
         <div className="relative z-10">
           <p className="text-slate-400 font-medium tracking-widest uppercase text-xs mb-3">
-            Patrimônio Líquido Total
+            {selectedCategory === 'all' ? 'Patrimônio Líquido Total' : 'Valor da Categoria'}
           </p>
           <div className="flex flex-col sm:flex-row sm:items-baseline gap-4">
             <h1 className="text-5xl sm:text-7xl font-serif font-medium tracking-tight text-white">
@@ -128,7 +187,7 @@ export default function Index() {
                 </span>
               </div>
               <CardTitle className="text-4xl font-serif text-slate-800 dark:text-slate-100 font-light">
-                {formatCurrency(totalAssets, currency)}
+                {formatCurrency(totalFilteredAssets, currency)}
               </CardTitle>
             </CardHeader>
           </Card>
@@ -174,6 +233,49 @@ export default function Index() {
           </Card>
         </div>
       </div>
+
+      {categories.filter((c) => c.goal_value > 0).length > 0 && (
+        <div className="mt-8">
+          <h3 className="text-xl font-serif mb-4">Metas por Categoria</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {categories
+              .filter((c) => c.goal_value > 0)
+              .map((cat) => {
+                const catAssets = assets.filter((a) => a.category === cat.id)
+                const current = catAssets.reduce(
+                  (sum, a) => sum + convertValue(a.current_valuation, a.currency, currency),
+                  0,
+                )
+                const goal = cat.goal_value
+                const progress = Math.min((current / goal) * 100, 100)
+
+                return (
+                  <Card key={cat.id} className="shadow-subtle border-none">
+                    <CardContent className="p-6 space-y-3">
+                      <div className="flex justify-between items-center text-sm">
+                        <div className="font-medium flex items-center gap-2">
+                          <span
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: cat.color }}
+                          ></span>
+                          {cat.name}
+                        </div>
+                        <div className="text-muted-foreground font-medium">
+                          {progress.toFixed(1)}%
+                        </div>
+                      </div>
+                      <Progress value={progress} indicatorColor={cat.color} className="h-2" />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>{formatCurrency(current, currency)}</span>
+                        <span>Meta: {formatCurrency(goal, currency)}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

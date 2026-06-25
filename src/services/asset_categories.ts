@@ -10,11 +10,12 @@ export const createAssetCategory = (data: {
   name: string
   color?: string
   icon?: string
+  goal_value?: number
 }) => pb.collection('asset_categories').create(data)
 
 export const updateAssetCategory = (
   id: string,
-  data: Partial<{ name: string; color: string; icon: string }>,
+  data: Partial<{ name: string; color: string; icon: string; goal_value: number }>,
 ) => pb.collection('asset_categories').update(id, data)
 
 export const deleteAssetCategory = (id: string) => pb.collection('asset_categories').delete(id)

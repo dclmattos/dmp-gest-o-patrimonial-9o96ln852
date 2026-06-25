@@ -4,11 +4,12 @@ import { useCurrency, convertValue, formatCurrency } from '@/hooks/use-currency'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Building2, Car, Globe, TrendingUp } from 'lucide-react'
+import { Building2, Car, Download, Globe, TrendingUp } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { useEffect } from 'react'
 import { CategoryManager } from '@/components/CategoryManager'
 import { AssetDialog } from '@/components/AssetDialog'
+import { Button } from '@/components/ui/button'
 import { getAssetCategories } from '@/services/asset_categories'
 import { useRealtime } from '@/hooks/use-realtime'
 
@@ -42,6 +43,35 @@ export default function Patrimonio() {
     return <TrendingUp size={18} />
   }
 
+  const handleExport = () => {
+    const headers = [
+      'Nome do Ativo',
+      'Tipo',
+      'Categoria',
+      'Moeda',
+      'Valoração Atual',
+      'Preço de Compra',
+    ]
+    const rows = filtered.map((a) => {
+      const cat = categories.find((c) => c.id === a.category)
+      return [
+        `"${a.name}"`,
+        `"${a.type}"`,
+        `"${cat ? cat.name : ''}"`,
+        `"${a.currency}"`,
+        a.current_valuation,
+        a.purchase_price || 0,
+      ].join(',')
+    })
+
+    const csv = [headers.join(','), ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `ativos_${tab}_${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+  }
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
@@ -51,7 +81,15 @@ export default function Patrimonio() {
             Gestão completa dos seus ativos físicos e financeiros.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            className="gap-2 shadow-subtle hover:border-primary/30 transition-all"
+          >
+            <Download size={16} />
+            <span className="hidden sm:inline">Exportar Dados</span>
+          </Button>
           <CategoryManager />
           <AssetDialog />
         </div>

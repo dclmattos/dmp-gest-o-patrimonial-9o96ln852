@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-25T11:21:16.471Z",
+  "generatedAt": "2026-06-25T11:25:18.885Z",
   "collections": [
     {
       "name": "users",
@@ -382,6 +382,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "goal_value",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_asset_categories_user ON asset_categories (user)"]
