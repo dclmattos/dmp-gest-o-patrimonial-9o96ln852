@@ -225,17 +225,12 @@ export default function Patrimonio() {
                   </p>
 
                   <div className="mt-6 pt-4 border-t border-border/40 space-y-2">
-                    {asset.purchase_price ? (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Base de Compra</span>
-                        <span className="font-medium">
-                          {formatCurrency(
-                            convertValue(asset.purchase_price, asset.currency, currency),
-                            currency,
-                          )}
-                        </span>
-                      </div>
-                    ) : null}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Valor de Compra</span>
+                      <span className="font-medium">
+                        {formatCurrency(asset.purchase_price || 0, asset.currency)}
+                      </span>
+                    </div>
                     {asset.location && (
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Localização</span>

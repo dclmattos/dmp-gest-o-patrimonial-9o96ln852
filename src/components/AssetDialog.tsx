@@ -33,6 +33,7 @@ export function AssetDialog() {
   const [subtype, setSubtype] = useState('')
   const [currency, setCurrency] = useState('BRL')
   const [valuation, setValuation] = useState('')
+  const [purchasePrice, setPurchasePrice] = useState('')
   const [categoryId, setCategoryId] = useState('none')
 
   const loadCategories = async () => {
@@ -60,12 +61,14 @@ export function AssetDialog() {
         subtype,
         currency,
         current_valuation: Number(valuation),
+        purchase_price: purchasePrice ? Number(purchasePrice) : null,
         category: categoryId === 'none' ? null : categoryId,
       })
       setOpen(false)
       setName('')
       setSubtype('')
       setValuation('')
+      setPurchasePrice('')
       setCategoryId('none')
     } catch (err) {
       console.error(err)
@@ -147,28 +150,40 @@ export function AssetDialog() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label>Categoria (Opcional)</Label>
-            <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhuma</SelectItem>
-                {categories.map((cat) => {
-                  const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
-                  return (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      <div className="flex items-center gap-2">
-                        {/* @ts-expect-error */}
-                        <Icon size={14} style={{ color: cat.color }} />
-                        <span>{cat.name}</span>
-                      </div>
-                    </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Valor de Compra</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={purchasePrice}
+                onChange={(e) => setPurchasePrice(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Categoria (Opcional)</Label>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma</SelectItem>
+                  {categories.map((cat) => {
+                    const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
+                    return (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <div className="flex items-center gap-2">
+                          {/* @ts-expect-error */}
+                          <Icon size={14} style={{ color: cat.color }} />
+                          <span>{cat.name}</span>
+                        </div>
+                      </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <Button type="submit" className="w-full mt-4">

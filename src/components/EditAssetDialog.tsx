@@ -190,7 +190,7 @@ export function EditAssetDialog({ asset, categories }: { asset: any; categories:
                 />
               </div>
               <div className="space-y-2">
-                <Label>Preço de Compra</Label>
+                <Label>Valor de Compra</Label>
                 <Input
                   type="number"
                   step="0.01"
