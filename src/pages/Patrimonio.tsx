@@ -4,14 +4,27 @@ import { useCurrency, convertValue, formatCurrency } from '@/hooks/use-currency'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Building2, Car, Download, Globe, TrendingUp } from 'lucide-react'
+import { Building2, Car, Download, Globe, TrendingUp, Trash2 } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { useEffect } from 'react'
 import { CategoryManager } from '@/components/CategoryManager'
 import { AssetDialog } from '@/components/AssetDialog'
 import { Button } from '@/components/ui/button'
 import { getAssetCategories } from '@/services/asset_categories'
+import { deleteAsset } from '@/services/assets'
 import { useRealtime } from '@/hooks/use-realtime'
+import { useToast } from '@/hooks/use-toast'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 export default function Patrimonio() {
   const [categories, setCategories] = useState<any[]>([])
@@ -33,6 +46,23 @@ export default function Patrimonio() {
   const { assets } = useDashboardData()
   const { currency } = useCurrency()
   const [tab, setTab] = useState('all')
+  const { toast } = useToast()
+
+  const handleDeleteAsset = async (id: string) => {
+    try {
+      await deleteAsset(id)
+      toast({
+        title: 'Sucesso',
+        description: 'Asset deleted successfully',
+      })
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: 'Failed to delete asset',
+        variant: 'destructive',
+      } as any)
+    }
+  }
 
   const filtered = tab === 'all' ? assets : assets.filter((a) => a.type === tab)
 
@@ -148,8 +178,35 @@ export default function Patrimonio() {
                           )
                         })()}
                     </div>
-                    <div className="text-slate-400 group-hover:text-primary transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50">
-                      {getIcon(asset.type)}
+                    <div className="flex items-center gap-2">
+                      <div className="text-slate-400 group-hover:text-primary transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50">
+                        {getIcon(asset.type)}
+                      </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button className="text-slate-400 hover:text-red-500 transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50 cursor-pointer">
+                            <Trash2 size={18} />
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Excluir Ativo</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete {asset.name}? This action cannot be
+                              undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteAsset(asset.id)}
+                              className="bg-red-500 hover:bg-red-600 text-white"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </div>
                   <CardTitle className="font-serif text-xl line-clamp-1">{asset.name}</CardTitle>
