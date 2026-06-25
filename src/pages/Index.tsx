@@ -13,7 +13,7 @@ import {
   CartesianGrid,
 } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { ArrowUpRight, Building2, Globe, Wallet } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight, Building2, Globe, Wallet } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -105,6 +105,84 @@ export default function Index() {
 
   const isAllFiltered = selectedCategory === 'all' && selectedType === 'all'
   const netWorth = isAllFiltered ? totalAssets - totalLiabilities : totalFilteredAssets
+
+  const monthlyVariation = useMemo(() => {
+    if (!filteredAssets.length) return { percentage: 0, isPositive: true }
+
+    const now = new Date()
+    const currentMonthStr = now.toISOString().substring(0, 7)
+    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const prevMonthStr = prevDate.toISOString().substring(0, 7)
+
+    const assetCurrencyMap = new Map(filteredAssets.map((a) => [a.id, a.currency]))
+    const filteredAssetsIds = new Set(filteredAssets.map((a) => a.id))
+
+    const relevantHistory = (valuationHistory || []).filter(
+      (vh) => filteredAssetsIds.has(vh.asset) && vh.date,
+    )
+    const acquisitions = filteredAssets
+      .filter((a) => a.acquisition_date)
+      .map((a) => ({
+        asset: a.id,
+        date: a.acquisition_date,
+        value: a.purchase_price ?? 0,
+      }))
+
+    const allEvents = [...relevantHistory, ...acquisitions].sort((a, b) =>
+      a.date.localeCompare(b.date),
+    )
+
+    const eventsByAsset = new Map<string, Array<{ month: string; value: number }>>()
+    allEvents.forEach((e) => {
+      const m = e.date.substring(0, 7)
+      if (!eventsByAsset.has(e.asset)) eventsByAsset.set(e.asset, [])
+      eventsByAsset.get(e.asset)!.push({ month: m, value: e.value })
+    })
+
+    const getValueForMonth = (m: string) => {
+      let totalValue = 0
+      filteredAssets.forEach((asset) => {
+        const events = eventsByAsset.get(asset.id) || []
+        let latestValue = 0
+        let foundEvent = false
+        for (let i = events.length - 1; i >= 0; i--) {
+          if (events[i].month <= m) {
+            latestValue = events[i].value
+            foundEvent = true
+            break
+          }
+        }
+
+        if (!foundEvent && events.length === 0) {
+          if (asset.acquisition_date && asset.acquisition_date.substring(0, 7) <= m) {
+            latestValue = asset.purchase_price || asset.current_valuation || 0
+          } else if (!asset.acquisition_date) {
+            latestValue = m >= currentMonthStr ? asset.current_valuation || 0 : 0
+          }
+        } else if (!foundEvent) {
+          latestValue = 0
+        }
+
+        if (m >= currentMonthStr) {
+          latestValue = asset.current_valuation || latestValue
+        }
+
+        totalValue += convertValue(latestValue, assetCurrencyMap.get(asset.id) || 'BRL', currency)
+      })
+      return totalValue
+    }
+
+    const prevValue = getValueForMonth(prevMonthStr)
+    const currValue = getValueForMonth(currentMonthStr)
+
+    const diff = currValue - prevValue
+    const percentage = prevValue === 0 ? (currValue > 0 ? 100 : 0) : (diff / prevValue) * 100
+
+    return {
+      percentage,
+      isPositive: diff >= 0,
+    }
+  }, [filteredAssets, valuationHistory, currency])
 
   const allocation = useMemo(() => {
     if (selectedType === 'all') {
@@ -291,9 +369,20 @@ export default function Index() {
             <h1 className="text-5xl sm:text-7xl font-serif font-medium tracking-tight text-white">
               {formatCurrency(netWorth, currency)}
             </h1>
-            <div className="flex items-center text-emerald-400 bg-emerald-400/10 px-3 py-1.5 rounded-md text-sm font-medium w-fit">
-              <ArrowUpRight size={16} className="mr-1" />
-              +2.4% no mês
+            <div
+              className={`flex items-center px-3 py-1.5 rounded-md text-sm font-medium w-fit ${
+                monthlyVariation.isPositive
+                  ? 'text-emerald-400 bg-emerald-400/10'
+                  : 'text-rose-400 bg-rose-400/10'
+              }`}
+            >
+              {monthlyVariation.isPositive ? (
+                <ArrowUpRight size={16} className="mr-1" />
+              ) : (
+                <ArrowDownRight size={16} className="mr-1" />
+              )}
+              {monthlyVariation.isPositive ? '+' : ''}
+              {monthlyVariation.percentage.toFixed(1)}% no mês
             </div>
           </div>
         </div>
