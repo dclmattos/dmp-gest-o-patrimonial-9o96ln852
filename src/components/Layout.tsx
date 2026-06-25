@@ -54,7 +54,7 @@ export default function Layout() {
               <Briefcase size={16} />
             </div>
             <span className="font-serif text-xl font-medium text-slate-100 tracking-wide">
-              Gestor VIP
+              DMP GP
             </span>
           </div>
         </SidebarHeader>
