@@ -438,35 +438,19 @@ export default function Index() {
         </Card>
 
         <div className="col-span-1 md:col-span-2 flex flex-col gap-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <Card className="shadow-subtle border-none flex flex-col justify-center bg-slate-50 dark:bg-slate-900">
-              <CardHeader>
-                <div className="flex items-center gap-2 text-slate-500 mb-2">
-                  <Building2 size={18} />
-                  <span className="font-medium text-sm uppercase tracking-wider">
-                    Total de Ativos
-                  </span>
-                </div>
-                <CardTitle className="text-4xl font-serif text-slate-800 dark:text-slate-100 font-light">
-                  {formatCurrency(totalFilteredAssets, currency)}
-                </CardTitle>
-              </CardHeader>
-            </Card>
-
-            <Card className="shadow-subtle border-none flex flex-col justify-center bg-slate-50 dark:bg-slate-900">
-              <CardHeader>
-                <div className="flex items-center gap-2 text-slate-500 mb-2">
-                  <Wallet size={18} />
-                  <span className="font-medium text-sm uppercase tracking-wider">
-                    Passivos & Obrigações
-                  </span>
-                </div>
-                <CardTitle className="text-4xl font-serif text-slate-800 dark:text-slate-100 font-light">
-                  {formatCurrency(totalLiabilities, currency)}
-                </CardTitle>
-              </CardHeader>
-            </Card>
-          </div>
+          <Card className="shadow-subtle border-none flex flex-col justify-center bg-slate-50 dark:bg-slate-900 text-center items-center py-2">
+            <CardHeader className="flex flex-col items-center">
+              <div className="flex items-center gap-2 text-slate-500 mb-2">
+                <Building2 size={18} />
+                <span className="font-medium text-sm uppercase tracking-wider">
+                  Total de Ativos
+                </span>
+              </div>
+              <CardTitle className="text-4xl sm:text-5xl font-serif text-slate-800 dark:text-slate-100 font-light">
+                {formatCurrency(totalFilteredAssets, currency)}
+              </CardTitle>
+            </CardHeader>
+          </Card>
 
           <Card className="shadow-subtle border-none flex-1">
             <CardHeader>
@@ -568,7 +552,24 @@ export default function Index() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="shadow-subtle border-none bg-rose-50 dark:bg-rose-950/20">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-rose-800 dark:text-rose-400 uppercase tracking-widest flex items-center gap-2">
+              <Wallet size={16} />
+              Passivos & Obrigações
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-white dark:bg-slate-900 px-6 py-5 rounded-xl border border-rose-100 dark:border-rose-900/50 shadow-sm flex flex-col justify-center h-full">
+              <p className="text-sm text-muted-foreground mb-1">Saldo Devedor Total</p>
+              <p className="font-medium font-serif text-rose-600 dark:text-rose-400 text-3xl">
+                {formatCurrency(totalLiabilities, currency)}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="shadow-subtle border-none bg-emerald-50 dark:bg-emerald-950/20">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-emerald-800 dark:text-emerald-400 uppercase tracking-widest">
@@ -576,11 +577,11 @@ export default function Index() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 h-full">
               {filteredReceivables.slice(0, 3).map((r) => (
                 <div
                   key={r.id}
-                  className="bg-white dark:bg-slate-900 px-4 py-3 rounded-xl border border-emerald-100 dark:border-emerald-900/50 shadow-sm"
+                  className="bg-white dark:bg-slate-900 px-4 py-3 rounded-xl border border-emerald-100 dark:border-emerald-900/50 shadow-sm flex flex-col justify-center"
                 >
                   <p className="text-sm text-muted-foreground truncate mb-1">{r.source}</p>
                   <p className="font-medium text-emerald-600 text-lg">
@@ -589,7 +590,9 @@ export default function Index() {
                 </div>
               ))}
               {filteredReceivables.length === 0 && (
-                <p className="text-sm text-muted-foreground">Nenhum fluxo programado.</p>
+                <div className="bg-white/50 dark:bg-slate-900/50 px-4 py-3 rounded-xl border border-dashed border-emerald-200 dark:border-emerald-900/50 flex items-center justify-center col-span-full min-h-[84px]">
+                  <p className="text-sm text-muted-foreground">Nenhum fluxo programado.</p>
+                </div>
               )}
             </div>
           </CardContent>
