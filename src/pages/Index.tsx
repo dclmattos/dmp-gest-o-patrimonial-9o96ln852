@@ -128,84 +128,6 @@ export default function Index() {
   const isAllFiltered = selectedCategory === 'all' && selectedType === 'all'
   const netWorth = isAllFiltered ? totalAssets - totalLiabilities : totalFilteredAssets
 
-  const monthlyVariation = useMemo(() => {
-    if (!filteredAssets.length) return { percentage: 0, isPositive: true }
-
-    const now = new Date()
-    const currentMonthStr = now.toISOString().substring(0, 7)
-    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    const prevMonthStr = prevDate.toISOString().substring(0, 7)
-
-    const assetCurrencyMap = new Map(filteredAssets.map((a) => [a.id, a.currency]))
-    const filteredAssetsIds = new Set(filteredAssets.map((a) => a.id))
-
-    const relevantHistory = (valuationHistory || []).filter(
-      (vh) => filteredAssetsIds.has(vh.asset) && vh.date,
-    )
-    const acquisitions = filteredAssets
-      .filter((a) => a.acquisition_date)
-      .map((a) => ({
-        asset: a.id,
-        date: a.acquisition_date,
-        value: a.purchase_price ?? 0,
-      }))
-
-    const allEvents = [...relevantHistory, ...acquisitions].sort((a, b) =>
-      a.date.localeCompare(b.date),
-    )
-
-    const eventsByAsset = new Map<string, Array<{ month: string; value: number }>>()
-    allEvents.forEach((e) => {
-      const m = e.date.substring(0, 7)
-      if (!eventsByAsset.has(e.asset)) eventsByAsset.set(e.asset, [])
-      eventsByAsset.get(e.asset)!.push({ month: m, value: e.value })
-    })
-
-    const getValueForMonth = (m: string) => {
-      let totalValue = 0
-      filteredAssets.forEach((asset) => {
-        const events = eventsByAsset.get(asset.id) || []
-        let latestValue = 0
-        let foundEvent = false
-        for (let i = events.length - 1; i >= 0; i--) {
-          if (events[i].month <= m) {
-            latestValue = events[i].value
-            foundEvent = true
-            break
-          }
-        }
-
-        if (!foundEvent && events.length === 0) {
-          if (asset.acquisition_date && asset.acquisition_date.substring(0, 7) <= m) {
-            latestValue = asset.purchase_price || asset.current_valuation || 0
-          } else if (!asset.acquisition_date) {
-            latestValue = m >= currentMonthStr ? asset.current_valuation || 0 : 0
-          }
-        } else if (!foundEvent) {
-          latestValue = 0
-        }
-
-        if (m >= currentMonthStr) {
-          latestValue = asset.current_valuation || latestValue
-        }
-
-        totalValue += convertValue(latestValue, assetCurrencyMap.get(asset.id) || 'BRL', currency)
-      })
-      return totalValue
-    }
-
-    const prevValue = getValueForMonth(prevMonthStr)
-    const currValue = getValueForMonth(currentMonthStr)
-
-    const diff = currValue - prevValue
-    const percentage = prevValue === 0 ? (currValue > 0 ? 100 : 0) : (diff / prevValue) * 100
-
-    return {
-      percentage,
-      isPositive: diff >= 0,
-    }
-  }, [filteredAssets, valuationHistory, currency])
-
   const allocation = useMemo(() => {
     if (selectedType === 'all') {
       return [
@@ -259,7 +181,16 @@ export default function Index() {
   }, [filteredAssets, selectedType, categories, currency])
 
   const evolutionData = useMemo(() => {
-    if (!filteredAssets.length) return []
+    const now = new Date()
+    const allMonths: string[] = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      allMonths.push(d.toISOString().substring(0, 7))
+    }
+
+    if (!filteredAssets.length && !filteredLiabilities.length) {
+      return allMonths.map((m) => ({ date: m, value: 0 }))
+    }
 
     const assetCurrencyMap = new Map(filteredAssets.map((a) => [a.id, a.currency]))
     const filteredAssetsIds = new Set(filteredAssets.map((a) => a.id))
@@ -279,25 +210,6 @@ export default function Index() {
       a.date.localeCompare(b.date),
     )
 
-    const currentMonth = new Date().toISOString().substring(0, 7)
-    let firstMonth = currentMonth
-    if (allEvents.length > 0 && allEvents[0].date.substring(0, 7) < currentMonth) {
-      firstMonth = allEvents[0].date.substring(0, 7)
-    }
-
-    const allMonths = []
-    let [year, month] = firstMonth.split('-').map(Number)
-    const [endYear, endMonth] = currentMonth.split('-').map(Number)
-
-    while (year < endYear || (year === endYear && month <= endMonth)) {
-      allMonths.push(`${year}-${month.toString().padStart(2, '0')}`)
-      month++
-      if (month > 12) {
-        month = 1
-        year++
-      }
-    }
-
     const eventsByAsset = new Map<string, Array<{ month: string; value: number }>>()
     allEvents.forEach((e) => {
       const m = e.date.substring(0, 7)
@@ -305,8 +217,10 @@ export default function Index() {
       eventsByAsset.get(e.asset)!.push({ month: m, value: e.value })
     })
 
+    const currentMonthStr = now.toISOString().substring(0, 7)
+
     const data = allMonths.map((m) => {
-      let totalValue = 0
+      let totalAssetsValue = 0
       filteredAssets.forEach((asset) => {
         const events = eventsByAsset.get(asset.id) || []
         let latestValue = 0
@@ -323,23 +237,69 @@ export default function Index() {
           if (asset.acquisition_date && asset.acquisition_date.substring(0, 7) <= m) {
             latestValue = asset.purchase_price || asset.current_valuation || 0
           } else if (!asset.acquisition_date) {
-            latestValue = m === currentMonth ? asset.current_valuation || 0 : 0
+            latestValue = m >= currentMonthStr ? asset.current_valuation || 0 : 0
           }
         } else if (!foundEvent) {
           latestValue = 0
         }
 
-        if (m === currentMonth) {
-          latestValue = asset.current_valuation || 0
+        if (m >= currentMonthStr) {
+          latestValue = asset.current_valuation || latestValue
         }
 
-        totalValue += convertValue(latestValue, assetCurrencyMap.get(asset.id) || 'BRL', currency)
+        totalAssetsValue += convertValue(
+          latestValue,
+          assetCurrencyMap.get(asset.id) || 'BRL',
+          currency,
+        )
       })
-      return { date: m, value: totalValue }
+
+      let totalLiabilitiesValue = 0
+      if (isAllFiltered) {
+        filteredLiabilities.forEach((l) => {
+          const startDateStr = l.start_date || l.created?.substring(0, 10) || ''
+          const startMonth = startDateStr.substring(0, 7)
+          if (!startMonth || startMonth <= m) {
+            let balance = l.remaining_balance || 0
+            if (l.monthly_installment && m < currentMonthStr) {
+              const [currY, currM] = currentMonthStr.split('-').map(Number)
+              const [mY, mM] = m.split('-').map(Number)
+              const diff = (currY - mY) * 12 + (currM - mM)
+              balance += l.monthly_installment * diff
+
+              if (l.total_value && balance > l.total_value) {
+                balance = l.total_value
+              }
+            }
+            totalLiabilitiesValue += convertValue(balance, 'BRL', currency)
+          }
+        })
+      }
+
+      return {
+        date: m,
+        value: totalAssetsValue - totalLiabilitiesValue,
+      }
     })
 
     return data
-  }, [valuationHistory, filteredAssets, currency])
+  }, [valuationHistory, filteredAssets, filteredLiabilities, isAllFiltered, currency])
+
+  const monthlyVariation = useMemo(() => {
+    if (evolutionData.length < 2) return { percentage: 0, isPositive: true }
+
+    const prevValue = evolutionData[evolutionData.length - 2].value
+    const currValue = evolutionData[evolutionData.length - 1].value
+
+    const diff = currValue - prevValue
+    const percentage =
+      prevValue === 0 ? (currValue > 0 ? 100 : 0) : (diff / Math.abs(prevValue)) * 100
+
+    return {
+      percentage,
+      isPositive: diff >= 0,
+    }
+  }, [evolutionData])
 
   return (
     <div className="space-y-8 animate-fade-in-up">
@@ -510,7 +470,11 @@ export default function Index() {
 
           <Card className="shadow-subtle border-none flex-1">
             <CardHeader>
-              <CardTitle className="font-serif text-xl">Evolução do Patrimônio</CardTitle>
+              <CardTitle className="font-serif text-xl">
+                {isAllFiltered
+                  ? 'Evolução do Patrimônio Líquido (6 Meses)'
+                  : 'Evolução Filtrada (6 Meses)'}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {evolutionData.length > 0 ? (
