@@ -28,6 +28,7 @@ export default {
       fontFamily: {
         sans: ['Inter', 'sans-serif'],
         serif: ['Playfair Display', 'serif'],
+        brand: ['"Cormorant Garamond"', 'serif'],
       },
       colors: {
         border: 'hsl(var(--border))',

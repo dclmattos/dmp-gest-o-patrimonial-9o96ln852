@@ -39,7 +39,7 @@ export default function Auth() {
 
       <div className="z-10 w-full max-w-md p-8 sm:p-10 space-y-8 bg-slate-900/60 backdrop-blur-xl border border-slate-800/50 rounded-2xl shadow-2xl animate-fade-in-up">
         <div className="flex flex-col w-full text-center space-y-2">
-          <h1 className="text-3xl font-serif font-medium text-white tracking-tight drop-shadow-lg">
+          <h1 className="text-3xl font-brand font-medium text-white tracking-tighter drop-shadow-lg">
             DMP Gestão Patrimonial
           </h1>
           <p className="text-sm font-light text-slate-300 drop-shadow-md">
