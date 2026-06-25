@@ -103,10 +103,13 @@ export default function Auth() {
 
           <Button
             type="submit"
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-full h-11 transition-all shadow-lg shadow-primary/20"
+            className="group relative w-full bg-slate-950/80 hover:bg-slate-900 text-white font-serif text-sm tracking-[0.2em] uppercase rounded-full h-12 transition-all duration-500 overflow-hidden border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.05)] hover:shadow-[0_0_25px_rgba(255,255,255,0.15)]"
             disabled={loading}
           >
-            {loading ? 'Acessando...' : 'Acessar o Cofre'}
+            <div className="absolute inset-1 border border-white/10 rounded-full pointer-events-none transition-colors duration-500 group-hover:border-white/30" />
+            <span className="relative z-10 font-medium opacity-90 group-hover:opacity-100 transition-opacity">
+              {loading ? 'Entrando...' : 'Entrar'}
+            </span>
           </Button>
         </form>
       </div>
