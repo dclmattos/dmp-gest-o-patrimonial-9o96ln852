@@ -52,7 +52,7 @@ export default function Layout() {
   return (
     <SidebarProvider>
       <Sidebar variant="sidebar" className="bg-slate-950 border-r-slate-800 text-slate-300 dark">
-        <SidebarHeader className="p-4 pt-6 pb-2">
+        <SidebarHeader className="p-4 pt-6 pb-2 not-italic">
           <div className="px-2 w-full flex justify-center pointer-events-none select-none">
             <div className="border border-slate-700/60 p-3 sm:p-4 rounded-sm relative w-full flex justify-center opacity-80">
               {/* Subtle corner accents */}
