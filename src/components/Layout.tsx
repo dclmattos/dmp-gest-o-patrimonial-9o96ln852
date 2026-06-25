@@ -52,14 +52,25 @@ export default function Layout() {
   return (
     <SidebarProvider>
       <Sidebar variant="sidebar" className="bg-slate-950 border-r-slate-800 text-slate-300 dark">
-        <SidebarHeader className="p-4 pt-6">
-          <div className="flex items-center gap-3 px-2">
-            <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center text-primary border border-primary/30">
-              <Briefcase size={16} />
+        <SidebarHeader className="p-4 pt-6 pb-2">
+          <div className="px-2 w-full flex justify-center pointer-events-none select-none">
+            <div className="border border-slate-700/60 p-3 sm:p-4 rounded-sm relative w-full flex justify-center opacity-80">
+              {/* Subtle corner accents */}
+              <div className="absolute -top-px -left-px w-1.5 h-1.5 border-t border-l border-slate-400/80" />
+              <div className="absolute -top-px -right-px w-1.5 h-1.5 border-t border-r border-slate-400/80" />
+              <div className="absolute -bottom-px -left-px w-1.5 h-1.5 border-b border-l border-slate-400/80" />
+              <div className="absolute -bottom-px -right-px w-1.5 h-1.5 border-b border-r border-slate-400/80" />
+
+              <div className="flex flex-col text-center font-serif text-slate-100 antialiased mix-blend-screen">
+                <span className="text-2xl font-bold tracking-[0.3em] leading-none mb-1 uppercase flex items-center justify-center gap-2">
+                  <Briefcase size={14} className="opacity-70 text-slate-300" strokeWidth={1.5} />
+                  DMP
+                </span>
+                <span className="text-[0.55rem] font-medium italic opacity-90 tracking-[0.2em] uppercase mt-1">
+                  Gestão Patrimonial
+                </span>
+              </div>
             </div>
-            <span className="font-serif text-xl font-medium text-slate-100 tracking-wide">
-              DMP GP
-            </span>
           </div>
         </SidebarHeader>
         <SidebarContent className="px-3 mt-6">
