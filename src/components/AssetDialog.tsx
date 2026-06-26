@@ -23,6 +23,7 @@ import * as Icons from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { createAsset } from '@/services/assets'
 import { getAssetCategories } from '@/services/asset_categories'
+import { getAssetTypes } from '@/services/asset_types'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
@@ -32,10 +33,11 @@ export function AssetDialog() {
   const { user } = useAuth()
   const { toast } = useToast()
   const [categories, setCategories] = useState<any[]>([])
+  const [types, setTypes] = useState<any[]>([])
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const [name, setName] = useState('')
-  const [type, setType] = useState('property')
+  const [typeRef, setTypeRef] = useState('')
   const [subtype, setSubtype] = useState('')
   const [currency, setCurrency] = useState('BRL')
   const [valuation, setValuation] = useState('')
@@ -45,10 +47,14 @@ export function AssetDialog() {
   const [notes, setNotes] = useState('')
   const [categoryId, setCategoryId] = useState('none')
 
-  const loadCategories = async () => {
+  const loadData = async () => {
     try {
-      const data = await getAssetCategories()
-      setCategories(data)
+      const [cats, ts] = await Promise.all([getAssetCategories(), getAssetTypes()])
+      setCategories(cats)
+      setTypes(ts)
+      if (ts.length > 0 && !typeRef) {
+        setTypeRef(ts[0].id)
+      }
     } catch {
       /* intentionally ignored */
     }
@@ -56,9 +62,9 @@ export function AssetDialog() {
 
   useEffect(() => {
     if (open) {
-      loadCategories()
+      loadData()
       setName('')
-      setType('property')
+      setTypeRef('')
       setSubtype('')
       setCurrency('BRL')
       setValuation('')
@@ -71,7 +77,8 @@ export function AssetDialog() {
     }
   }, [open])
 
-  useRealtime('asset_categories', loadCategories, open)
+  useRealtime('asset_categories', loadData, open)
+  useRealtime('asset_types', loadData, open)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -79,9 +86,8 @@ export function AssetDialog() {
     setFieldErrors({})
     try {
       await createAsset({
-        user: user.id,
         name,
-        type,
+        type_ref: typeRef,
         subtype,
         currency,
         current_valuation: Number(valuation),
@@ -132,17 +138,27 @@ export function AssetDialog() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tipo</Label>
-                <Select value={type} onValueChange={setType}>
-                  <SelectTrigger>
-                    <SelectValue />
+                <Select value={typeRef} onValueChange={setTypeRef}>
+                  <SelectTrigger className={fieldErrors.type_ref ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="property">Imóvel</SelectItem>
-                    <SelectItem value="vehicle">Veículo</SelectItem>
-                    <SelectItem value="investment">Investimento BR</SelectItem>
-                    <SelectItem value="international">Internacional</SelectItem>
+                    {types.map((t) => {
+                      const IconComponent = Icons[t.icon as keyof typeof Icons] || Icons.Box
+                      return (
+                        <SelectItem key={t.id} value={t.id}>
+                          <div className="flex items-center gap-2">
+                            <IconComponent size={14} className="text-muted-foreground" />
+                            <span>{t.name}</span>
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
+                {fieldErrors.type_ref && (
+                  <p className="text-sm text-red-500">{fieldErrors.type_ref}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Moeda</Label>

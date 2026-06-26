@@ -6,10 +6,12 @@ import { useAuth } from '@/hooks/use-auth'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Download, Users } from 'lucide-react'
 import { CategoryManager } from '@/components/CategoryManager'
+import { TypeManager } from '@/components/TypeManager'
 import { AssetDialog } from '@/components/AssetDialog'
 import { AssetCard } from '@/components/AssetCard'
 import { Button } from '@/components/ui/button'
 import { getAssetCategories } from '@/services/asset_categories'
+import { getAssetTypes } from '@/services/asset_types'
 import { deleteAsset } from '@/services/assets'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
@@ -48,23 +50,29 @@ export default function Patrimonio() {
   }, [selectedClient])
 
   const [categories, setCategories] = useState<any[]>([])
+  const [types, setTypes] = useState<any[]>([])
 
-  const loadCategories = async () => {
+  const loadData = async () => {
     if (isAdmin && !selectedClient) return
     const effectiveUserId = selectedClient || (user?.role === 'user' ? user?.id : undefined)
     try {
-      const data = await getAssetCategories(effectiveUserId)
-      setCategories(data)
+      const [cats, ts] = await Promise.all([
+        getAssetCategories(effectiveUserId),
+        getAssetTypes(effectiveUserId),
+      ])
+      setCategories(cats)
+      setTypes(ts)
     } catch {
       /* intentionally ignored */
     }
   }
 
   useEffect(() => {
-    loadCategories()
+    loadData()
   }, [selectedClient, isAdmin, user])
 
-  useRealtime('asset_categories', loadCategories)
+  useRealtime('asset_categories', loadData)
+  useRealtime('asset_types', loadData)
 
   const queryUserId = isAdmin && !selectedClient ? 'skip' : selectedClient || undefined
   const { assets } = useDashboardData(queryUserId)
@@ -78,8 +86,8 @@ export default function Patrimonio() {
   useEffect(() => {
     if (highlightAsset && assets.length > 0) {
       const asset = assets.find((a) => a.id === highlightAsset)
-      if (asset && asset.type !== tab) {
-        setTab(asset.type)
+      if (asset && asset.type_ref !== tab) {
+        setTab(asset.type_ref)
       }
       setTimeout(() => {
         const el = document.getElementById(`asset-${highlightAsset}`)
@@ -106,7 +114,7 @@ export default function Patrimonio() {
     }
   }
 
-  const filtered = tab === 'all' ? assets : assets.filter((a) => a.type === tab)
+  const filtered = tab === 'all' ? assets : assets.filter((a) => a.type_ref === tab)
 
   const handleExport = () => {
     const headers = [
@@ -119,9 +127,10 @@ export default function Patrimonio() {
     ]
     const rows = filtered.map((a) => {
       const cat = categories.find((c) => c.id === a.category)
+      const t = types.find((t) => t.id === a.type_ref)
       return [
         `"${a.name}"`,
-        `"${a.type}"`,
+        `"${t ? t.name : a.type || ''}"`,
         `"${cat ? cat.name : ''}"`,
         `"${a.currency}"`,
         a.current_valuation,
@@ -209,6 +218,7 @@ export default function Patrimonio() {
             <Download size={16} />
             <span className="hidden sm:inline">Exportar Dados</span>
           </Button>
+          <TypeManager />
           <CategoryManager />
           <AssetDialog />
         </div>
@@ -219,18 +229,11 @@ export default function Patrimonio() {
           <TabsTrigger value="all" className="rounded-md py-2">
             Todos os Ativos
           </TabsTrigger>
-          <TabsTrigger value="property" className="rounded-md py-2">
-            Imóveis
-          </TabsTrigger>
-          <TabsTrigger value="vehicle" className="rounded-md py-2">
-            Veículos
-          </TabsTrigger>
-          <TabsTrigger value="investment" className="rounded-md py-2">
-            Investimentos BR
-          </TabsTrigger>
-          <TabsTrigger value="international" className="rounded-md py-2">
-            Internacional
-          </TabsTrigger>
+          {types.map((t) => (
+            <TabsTrigger key={t.id} value={t.id} className="rounded-md py-2">
+              {t.name}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value={tab} className="mt-8">
@@ -245,7 +248,12 @@ export default function Patrimonio() {
                     : ''
                 }
               >
-                <AssetCard asset={asset} categories={categories} onDelete={handleDeleteAsset} />
+                <AssetCard
+                  asset={asset}
+                  categories={categories}
+                  types={types}
+                  onDelete={handleDeleteAsset}
+                />
               </div>
             ))}
             {filtered.length === 0 && (

@@ -27,10 +27,12 @@ import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 export function EditAssetDialog({
   asset,
   categories,
+  types,
   onUpdate,
 }: {
   asset: any
   categories: any[]
+  types: any[]
   onUpdate?: (asset: any) => void
 }) {
   const [open, setOpen] = useState(false)
@@ -38,7 +40,7 @@ export function EditAssetDialog({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const [name, setName] = useState(asset.name)
-  const [type, setType] = useState(asset.type)
+  const [typeRef, setTypeRef] = useState(asset.type_ref || '')
   const [subtype, setSubtype] = useState(asset.subtype || '')
   const [currency, setCurrency] = useState(asset.currency)
   const [valuation, setValuation] = useState(asset.current_valuation.toString())
@@ -55,7 +57,7 @@ export function EditAssetDialog({
   useEffect(() => {
     if (open) {
       setName(asset.name)
-      setType(asset.type)
+      setTypeRef(asset.type_ref || '')
       setSubtype(asset.subtype || '')
       setCurrency(asset.currency)
       setValuation(asset.current_valuation.toString())
@@ -73,7 +75,7 @@ export function EditAssetDialog({
     try {
       const dataToUpdate = {
         name,
-        type,
+        type_ref: typeRef,
         subtype,
         currency,
         current_valuation: Number(valuation),
@@ -137,17 +139,27 @@ export function EditAssetDialog({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tipo</Label>
-                <Select value={type} onValueChange={setType}>
-                  <SelectTrigger>
-                    <SelectValue />
+                <Select value={typeRef} onValueChange={setTypeRef}>
+                  <SelectTrigger className={fieldErrors.type_ref ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="property">Imóvel</SelectItem>
-                    <SelectItem value="vehicle">Veículo</SelectItem>
-                    <SelectItem value="investment">Investimento BR</SelectItem>
-                    <SelectItem value="international">Internacional</SelectItem>
+                    {types.map((t) => {
+                      const IconComponent = Icons[t.icon as keyof typeof Icons] || Icons.Box
+                      return (
+                        <SelectItem key={t.id} value={t.id}>
+                          <div className="flex items-center gap-2">
+                            <IconComponent size={14} className="text-muted-foreground" />
+                            <span>{t.name}</span>
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
+                {fieldErrors.type_ref && (
+                  <p className="text-sm text-red-500">{fieldErrors.type_ref}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Moeda</Label>

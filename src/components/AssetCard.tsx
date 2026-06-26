@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Building2, Car, Globe, TrendingUp, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { formatCurrency, convertValue, useCurrency } from '@/hooks/use-currency'
 import { EditAssetDialog } from '@/components/EditAssetDialog'
@@ -19,19 +19,19 @@ import {
 interface AssetCardProps {
   asset: any
   categories: any[]
+  types: any[]
   onDelete: (id: string) => void
   onUpdate?: (updated: any) => void
 }
 
-export function AssetCard({ asset, categories, onDelete, onUpdate }: AssetCardProps) {
+export function AssetCard({ asset, categories, types, onDelete, onUpdate }: AssetCardProps) {
   const { currency } = useCurrency()
 
-  const getIcon = (type: string) => {
-    if (type === 'property') return <Building2 size={18} />
-    if (type === 'vehicle') return <Car size={18} />
-    if (type === 'international') return <Globe size={18} />
-    return <TrendingUp size={18} />
-  }
+  const assetType = types.find((t) => t.id === asset.type_ref)
+  const IconComponent =
+    assetType && assetType.icon && Icons[assetType.icon as keyof typeof Icons]
+      ? Icons[assetType.icon as keyof typeof Icons]
+      : Icons.Box
 
   return (
     <Card className="shadow-subtle border border-border/50 hover:border-primary/30 hover:shadow-elevation transition-all duration-500 group overflow-hidden bg-gradient-to-br from-card to-slate-50/50 dark:to-slate-900/50">
@@ -64,9 +64,15 @@ export function AssetCard({ asset, categories, onDelete, onUpdate }: AssetCardPr
           </div>
           <div className="flex items-center gap-2">
             <div className="text-slate-400 group-hover:text-primary transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50">
-              {getIcon(asset.type)}
+              {/* @ts-expect-error */}
+              <IconComponent size={18} />
             </div>
-            <EditAssetDialog asset={asset} categories={categories} onUpdate={onUpdate} />
+            <EditAssetDialog
+              asset={asset}
+              categories={categories}
+              types={types}
+              onUpdate={onUpdate}
+            />
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <button className="text-slate-400 hover:text-red-500 transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50 cursor-pointer">
