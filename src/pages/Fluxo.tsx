@@ -26,6 +26,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
 import { getUsers } from '@/services/users'
 import { setSelectedUserId } from '@/stores/selectedUser'
+import { MonthlyProjection } from '@/components/MonthlyProjection'
 import {
   Select,
   SelectContent,
@@ -271,6 +272,8 @@ export default function Fluxo() {
           </CardContent>
         </Card>
       </div>
+
+      <MonthlyProjection receivables={receivables} liabilities={liabilities} currency={currency} />
 
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <AlertDialogContent>
