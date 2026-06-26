@@ -480,41 +480,39 @@ export default function Index() {
                     </ResponsiveContainer>
                   </ChartContainer>
                 </div>
-                <div className="w-full space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                  {allocation.map((item) => {
-                    const IconComponent = item.icon
-                      ? (Icons as any)[item.icon] || Icons.Box
-                      : Icons.Box
-                    const percentage = (
-                      (item.value / allocation.reduce((acc, curr) => acc + curr.value, 0)) *
-                      100
-                    ).toFixed(1)
-                    return (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted/60 transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-3 h-3 rounded-full shrink-0"
-                            style={{ backgroundColor: item.color }}
-                          />
-                          <div className="text-muted-foreground p-1.5 bg-background rounded-md shadow-sm">
-                            <IconComponent size={14} />
+                <div className="w-full space-y-0.5 max-h-[220px] overflow-y-auto pr-1">
+                  {[...allocation]
+                    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                    .map((item) => {
+                      const percentage = (
+                        (item.value / allocation.reduce((acc, curr) => acc + curr.value, 0)) *
+                        100
+                      ).toFixed(1)
+                      return (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between py-1.5 px-2 hover:bg-muted/30 rounded-md transition-colors group"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-2 h-2 rounded-full shrink-0 opacity-80 group-hover:opacity-100 transition-opacity"
+                              style={{ backgroundColor: item.color }}
+                            />
+                            <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors line-clamp-1">
+                              {item.name}
+                            </span>
                           </div>
-                          <span className="text-sm font-medium line-clamp-1">{item.name}</span>
+                          <div className="flex items-center gap-3 text-right shrink-0">
+                            <span className="text-xs font-medium text-foreground">
+                              {formatCurrency(item.value, currency)}
+                            </span>
+                            <span className="text-[10px] font-medium text-muted-foreground w-9 text-right">
+                              {percentage}%
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-right shrink-0 ml-2">
-                          <p className="text-sm font-semibold">
-                            {formatCurrency(item.value, currency)}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground font-medium">
-                            {percentage}%
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
                 </div>
               </div>
             ) : (
