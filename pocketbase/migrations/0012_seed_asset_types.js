@@ -4,22 +4,28 @@ migrate(
 
     const defaultTypes = [
       {
-        id: 'system_property',
+        id: 'sysproperty0000',
         name: 'Imóveis',
         icon: 'Building2',
         is_system: true,
         old_type: 'property',
       },
-      { id: 'system_vehicle', name: 'Veículos', icon: 'Car', is_system: true, old_type: 'vehicle' },
       {
-        id: 'system_investment',
+        id: 'sysvehicle00000',
+        name: 'Veículos',
+        icon: 'Car',
+        is_system: true,
+        old_type: 'vehicle',
+      },
+      {
+        id: 'sysinvestment00',
         name: 'Investimentos BR',
         icon: 'TrendingUp',
         is_system: true,
         old_type: 'investment',
       },
       {
-        id: 'system_internat',
+        id: 'sysinternat0000',
         name: 'Internacional',
         icon: 'Globe',
         is_system: true,
@@ -55,10 +61,10 @@ migrate(
   },
   (app) => {
     const defaultTypes = [
-      'system_property',
-      'system_vehicle',
-      'system_investment',
-      'system_internat',
+      'sysproperty0000',
+      'sysvehicle00000',
+      'sysinvestment00',
+      'sysinternat0000',
     ]
     for (const id of defaultTypes) {
       try {

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-26T16:23:17.995Z",
+  "generatedAt": "2026-06-26T16:28:30.856Z",
   "collections": [
     {
       "name": "users",
@@ -78,7 +78,7 @@
         {
           "name": "type",
           "type": "select",
-          "required": true,
+          "required": false,
           "system": false,
           "selectValues": ["property", "vehicle", "investment", "international"]
         },
@@ -153,6 +153,13 @@
           "required": false,
           "system": false,
           "collectionRef": "asset_categories"
+        },
+        {
+          "name": "type_ref",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "asset_types"
         }
       ],
       "indexes": [
@@ -422,6 +429,59 @@
         }
       ],
       "indexes": ["CREATE INDEX idx_asset_categories_user ON asset_categories (user)"]
+    },
+    {
+      "name": "asset_types",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (user = @request.auth.id || is_system = true)",
+        "view": "@request.auth.id != '' && (user = @request.auth.id || is_system = true)",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != '' && user = @request.auth.id && is_system = false",
+        "delete": "@request.auth.id != '' && user = @request.auth.id && is_system = false"
+      },
+      "fields": [
+        {
+          "name": "name",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "icon",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "user",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "is_system",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": ["CREATE INDEX idx_asset_types_user ON asset_types (user)"]
     }
   ]
 }
