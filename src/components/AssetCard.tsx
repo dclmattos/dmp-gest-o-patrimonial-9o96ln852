@@ -113,6 +113,14 @@ export function AssetCard({ asset, categories, onDelete, onUpdate }: AssetCardPr
               {formatCurrency(asset.purchase_price || 0, asset.currency)}
             </span>
           </div>
+          {asset.acquisition_date && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Data de Aquisição</span>
+              <span className="font-medium">
+                {new Date(asset.acquisition_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+              </span>
+            </div>
+          )}
           {asset.location && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Localização</span>
