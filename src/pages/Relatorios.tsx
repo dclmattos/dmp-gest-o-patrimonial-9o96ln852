@@ -27,7 +27,7 @@ export default function Relatorios() {
   const { user } = useAuth()
   const [users, setUsers] = useState<any[]>([])
 
-  const [selectedClient, setSelectedClient] = useState<string>(user?.id || '')
+  const [selectedClient, setSelectedClient] = useState<string>('all')
 
   const { assets } = useDashboardData(selectedClient)
   const { currency } = useCurrency()
@@ -72,17 +72,10 @@ export default function Relatorios() {
       getUsers()
         .then((data) => {
           setUsers(data)
-          setSelectedClient((current) => {
-            if (current === user.id) {
-              const firstUser = data.find((u) => u.role === 'user') || data[0]
-              return firstUser ? firstUser.id : current
-            }
-            return current
-          })
         })
         .catch(() => {})
     }
-  }, [user?.id, user?.role])
+  }, [user?.role])
 
   const filteredAssets = useMemo(() => {
     return assets.filter((a) => {
@@ -297,6 +290,7 @@ export default function Relatorios() {
                     <SelectValue placeholder="Selecione um cliente" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all">Todos os Clientes</SelectItem>
                     {users.map((u) => (
                       <SelectItem key={u.id} value={u.id}>
                         {u.name || u.email || `Cliente ${u.id}`}{' '}
