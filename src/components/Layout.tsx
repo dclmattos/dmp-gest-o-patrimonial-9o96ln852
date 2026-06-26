@@ -1,6 +1,9 @@
-import { Link, Outlet } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { useCurrency } from '@/hooks/use-currency'
+import pb from '@/lib/pocketbase/client'
+import { getSelectedUserId } from '@/stores/selectedUser'
 import {
   SidebarProvider,
   Sidebar,
@@ -21,9 +24,120 @@ import {
   LogOut,
   Search,
   PieChart,
+  X,
+  Loader2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+
+function GlobalSearch() {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<any[]>([])
+  const [isOpen, setIsOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const navigate = useNavigate()
+  const wrapperRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  useEffect(() => {
+    const timeout = setTimeout(async () => {
+      if (!query.trim()) {
+        setResults([])
+        setIsLoading(false)
+        return
+      }
+      setIsLoading(true)
+      try {
+        const targetUser = getSelectedUserId()
+        const searchPattern = query.trim().replace(/"/g, '')
+        let filter = `(name ~ "${searchPattern}" || type ~ "${searchPattern}" || subtype ~ "${searchPattern}" || location ~ "${searchPattern}")`
+        if (targetUser) {
+          filter = `user = "${targetUser}" && ${filter}`
+        }
+        const res = await pb.collection('assets').getList(1, 5, { filter })
+        setResults(res.items)
+        setIsOpen(true)
+      } catch (e) {
+        console.error(e)
+      } finally {
+        setIsLoading(false)
+      }
+    }, 300)
+    return () => clearTimeout(timeout)
+  }, [query])
+
+  return (
+    <div ref={wrapperRef} className="relative hidden md:block z-50">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <Input
+        placeholder="Buscar ativos..."
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value)
+          if (!isOpen && e.target.value.trim()) setIsOpen(true)
+        }}
+        onFocus={() => {
+          if (query.trim()) setIsOpen(true)
+        }}
+        className="w-64 pl-10 pr-8 bg-muted/50 border-none rounded-full h-10 shadow-none focus-visible:ring-1 focus-visible:ring-primary/30"
+      />
+      {query && (
+        <button
+          onClick={() => {
+            setQuery('')
+            setResults([])
+            setIsOpen(false)
+          }}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
+
+      {isOpen && query.trim() && (
+        <div className="absolute top-full mt-2 w-full bg-popover border border-border/50 rounded-md shadow-md overflow-hidden">
+          {isLoading ? (
+            <div className="p-4 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> Buscando...
+            </div>
+          ) : results.length > 0 ? (
+            <div className="max-h-[300px] overflow-auto py-1">
+              {results.map((asset) => (
+                <button
+                  key={asset.id}
+                  onClick={() => {
+                    setIsOpen(false)
+                    setQuery('')
+                    navigate('/patrimonio', { state: { highlightAsset: asset.id } })
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors flex flex-col gap-0.5"
+                >
+                  <span className="text-sm font-medium line-clamp-1">{asset.name}</span>
+                  <span className="text-xs text-muted-foreground capitalize">
+                    {asset.type} {asset.subtype ? `- ${asset.subtype}` : ''}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              Nenhum ativo encontrado
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function CurrencyToggle() {
   const { currency, setCurrency } = useCurrency()
@@ -175,13 +289,7 @@ export default function Layout() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="relative hidden md:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar ativos..."
-                className="w-64 pl-10 bg-muted/50 border-none rounded-full h-10 shadow-none focus-visible:ring-1 focus-visible:ring-primary/30"
-              />
-            </div>
+            <GlobalSearch />
             <CurrencyToggle />
           </div>
         </header>

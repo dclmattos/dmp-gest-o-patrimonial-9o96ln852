@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useDashboardData } from '@/hooks/use-dashboard-data'
 import { useCurrency } from '@/hooks/use-currency'
 import { useAuth } from '@/hooks/use-auth'
@@ -71,6 +72,23 @@ export default function Patrimonio() {
   const { currency } = useCurrency()
   const [tab, setTab] = useState('all')
   const { toast } = useToast()
+  const location = useLocation()
+  const highlightAsset = location.state?.highlightAsset as string | undefined
+
+  useEffect(() => {
+    if (highlightAsset && assets.length > 0) {
+      const asset = assets.find((a) => a.id === highlightAsset)
+      if (asset && asset.type !== tab) {
+        setTab(asset.type)
+      }
+      setTimeout(() => {
+        const el = document.getElementById(`asset-${highlightAsset}`)
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 200)
+    }
+  }, [highlightAsset, assets, tab])
 
   const handleDeleteAsset = async (id: string) => {
     try {
@@ -218,12 +236,17 @@ export default function Patrimonio() {
         <TabsContent value={tab} className="mt-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((asset) => (
-              <AssetCard
+              <div
                 key={asset.id}
-                asset={asset}
-                categories={categories}
-                onDelete={handleDeleteAsset}
-              />
+                id={`asset-${asset.id}`}
+                className={
+                  highlightAsset === asset.id
+                    ? 'ring-2 ring-primary rounded-lg transition-all duration-1000'
+                    : ''
+                }
+              >
+                <AssetCard asset={asset} categories={categories} onDelete={handleDeleteAsset} />
+              </div>
             ))}
             {filtered.length === 0 && (
               <div className="col-span-full py-12 text-center text-muted-foreground border border-dashed rounded-lg bg-card">
