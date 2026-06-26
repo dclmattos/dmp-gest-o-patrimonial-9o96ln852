@@ -18,9 +18,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Plus } from 'lucide-react'
+import { Plus, ChevronDown } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { AssetReceivableManager } from './AssetReceivableManager'
+import { AssetLiabilityManager } from './AssetLiabilityManager'
+import { createReceivable } from '@/services/receivables'
+import { createLiability } from '@/services/liabilities'
 import { createAsset } from '@/services/assets'
 import { getAssetCategories } from '@/services/asset_categories'
 import { getAssetTypes } from '@/services/asset_types'
@@ -46,6 +51,10 @@ export function AssetDialog() {
   const [location, setLocation] = useState('')
   const [notes, setNotes] = useState('')
   const [categoryId, setCategoryId] = useState('none')
+
+  const [receivables, setReceivables] = useState<any[]>([])
+  const [liabilities, setLiabilities] = useState<any[]>([])
+  const [isSaving, setIsSaving] = useState(false)
 
   const loadData = async () => {
     try {
@@ -73,6 +82,8 @@ export function AssetDialog() {
       setLocation('')
       setNotes('')
       setCategoryId('none')
+      setReceivables([])
+      setLiabilities([])
       setFieldErrors({})
     }
   }, [open])
@@ -84,8 +95,9 @@ export function AssetDialog() {
     e.preventDefault()
     if (!user) return
     setFieldErrors({})
+    setIsSaving(true)
     try {
-      await createAsset({
+      const asset = await createAsset({
         name,
         type_ref: typeRef,
         subtype,
@@ -97,6 +109,14 @@ export function AssetDialog() {
         notes,
         category: categoryId === 'none' ? null : categoryId,
       })
+
+      for (const r of receivables) {
+        await createReceivable({ ...r, asset: asset.id, user: user.id })
+      }
+      for (const l of liabilities) {
+        await createLiability({ ...l, asset: asset.id, user: user.id })
+      }
+
       setOpen(false)
       toast({ title: 'Sucesso', description: 'Ativo criado com sucesso.' })
     } catch (err) {
@@ -106,6 +126,8 @@ export function AssetDialog() {
         description: 'Falha ao criar ativo. Verifique os campos.',
         variant: 'destructive',
       })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -272,14 +294,55 @@ export function AssetDialog() {
                 placeholder="Informações adicionais..."
               />
             </div>
+
+            <Collapsible className="border rounded-md p-3 space-y-2 bg-background">
+              <CollapsibleTrigger className="flex items-center justify-between w-full font-medium text-sm hover:text-primary transition-colors [&[data-state=open]>svg]:rotate-180">
+                Recebíveis Associados
+                <ChevronDown
+                  size={16}
+                  className="text-muted-foreground transition-transform duration-200"
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="pt-3">
+                  <AssetReceivableManager
+                    receivables={receivables}
+                    setReceivables={setReceivables}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            <Collapsible className="border rounded-md p-3 space-y-2 bg-background">
+              <CollapsibleTrigger className="flex items-center justify-between w-full font-medium text-sm hover:text-primary transition-colors [&[data-state=open]>svg]:rotate-180">
+                Despesas/Obrigações Associadas
+                <ChevronDown
+                  size={16}
+                  className="text-muted-foreground transition-transform duration-200"
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="pt-3">
+                  <AssetLiabilityManager
+                    liabilities={liabilities}
+                    setLiabilities={setLiabilities}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </form>
         </ScrollArea>
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t bg-muted/40">
-          <Button variant="outline" type="button" onClick={() => setOpen(false)}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={() => setOpen(false)}
+            disabled={isSaving}
+          >
             Cancelar
           </Button>
-          <Button type="submit" form="create-asset-form">
-            Salvar Ativo
+          <Button type="submit" form="create-asset-form" disabled={isSaving}>
+            {isSaving ? 'Salvando...' : 'Salvar Ativo'}
           </Button>
         </div>
       </DialogContent>

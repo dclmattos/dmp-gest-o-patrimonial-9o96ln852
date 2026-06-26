@@ -18,9 +18,16 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Pencil } from 'lucide-react'
+import { Pencil, ChevronDown } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { updateAsset } from '@/services/assets'
+import pb from '@/lib/pocketbase/client'
+import { useAuth } from '@/hooks/use-auth'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { AssetReceivableManager } from './AssetReceivableManager'
+import { AssetLiabilityManager } from './AssetLiabilityManager'
+import { createReceivable, deleteReceivable } from '@/services/receivables'
+import { createLiability, deleteLiability } from '@/services/liabilities'
 import { useToast } from '@/hooks/use-toast'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 
@@ -36,8 +43,15 @@ export function EditAssetDialog({
   onUpdate?: (asset: any) => void
 }) {
   const [open, setOpen] = useState(false)
+  const { user } = useAuth()
   const { toast } = useToast()
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+
+  const [initialReceivables, setInitialReceivables] = useState<any[]>([])
+  const [initialLiabilities, setInitialLiabilities] = useState<any[]>([])
+  const [receivables, setReceivables] = useState<any[]>([])
+  const [liabilities, setLiabilities] = useState<any[]>([])
+  const [isSaving, setIsSaving] = useState(false)
 
   const [name, setName] = useState(asset.name)
   const [typeRef, setTypeRef] = useState(asset.type_ref || '')
@@ -66,12 +80,30 @@ export function EditAssetDialog({
       setLocation(asset.location || '')
       setNotes(asset.notes || '')
       setCategoryId(asset.category || 'none')
+
+      const fetchLinked = async () => {
+        try {
+          const [recs, liabs] = await Promise.all([
+            pb.collection('receivables').getFullList({ filter: `asset="${asset.id}"` }),
+            pb.collection('liabilities').getFullList({ filter: `asset="${asset.id}"` }),
+          ])
+          setInitialReceivables(recs)
+          setReceivables(recs)
+          setInitialLiabilities(liabs)
+          setLiabilities(liabs)
+        } catch (e) {
+          console.error(e)
+        }
+      }
+      fetchLinked()
     }
   }, [open, asset])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!user) return
     setFieldErrors({})
+    setIsSaving(true)
     try {
       const dataToUpdate = {
         name,
@@ -91,6 +123,24 @@ export function EditAssetDialog({
       }
 
       await updateAsset(asset.id, dataToUpdate)
+
+      const deletedRecs = initialReceivables.filter(
+        (ir) => !receivables.find((r) => r.id === ir.id),
+      )
+      const newRecs = receivables.filter((r) => !r.id)
+      for (const r of deletedRecs) await deleteReceivable(r.id)
+      for (const r of newRecs) await createReceivable({ ...r, asset: asset.id, user: user.id })
+
+      const deletedLiabs = initialLiabilities.filter(
+        (il) => !liabilities.find((l) => l.id === il.id),
+      )
+      const newLiabs = liabilities.filter((l) => !l.id)
+      for (const l of deletedLiabs) await deleteLiability(l.id)
+      for (const l of newLiabs) await createLiability({ ...l, asset: asset.id, user: user.id })
+
+      if (onUpdate) {
+        onUpdate({ ...asset, ...dataToUpdate })
+      }
       setOpen(false)
       toast({ title: 'Sucesso', description: 'Ativo atualizado com sucesso.' })
     } catch (err) {
@@ -103,6 +153,8 @@ export function EditAssetDialog({
         description: 'Falha ao atualizar ativo. Verifique os campos.',
         variant: 'destructive',
       })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -263,14 +315,55 @@ export function EditAssetDialog({
                 placeholder="Informações adicionais..."
               />
             </div>
+
+            <Collapsible className="border rounded-md p-3 space-y-2 bg-background">
+              <CollapsibleTrigger className="flex items-center justify-between w-full font-medium text-sm hover:text-primary transition-colors [&[data-state=open]>svg]:rotate-180">
+                Recebíveis Associados
+                <ChevronDown
+                  size={16}
+                  className="text-muted-foreground transition-transform duration-200"
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="pt-3">
+                  <AssetReceivableManager
+                    receivables={receivables}
+                    setReceivables={setReceivables}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            <Collapsible className="border rounded-md p-3 space-y-2 bg-background">
+              <CollapsibleTrigger className="flex items-center justify-between w-full font-medium text-sm hover:text-primary transition-colors [&[data-state=open]>svg]:rotate-180">
+                Despesas/Obrigações Associadas
+                <ChevronDown
+                  size={16}
+                  className="text-muted-foreground transition-transform duration-200"
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="pt-3">
+                  <AssetLiabilityManager
+                    liabilities={liabilities}
+                    setLiabilities={setLiabilities}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </form>
         </ScrollArea>
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t bg-muted/40">
-          <Button variant="outline" type="button" onClick={() => setOpen(false)}>
+          <Button
+            variant="outline"
+            type="button"
+            onClick={() => setOpen(false)}
+            disabled={isSaving}
+          >
             Cancelar
           </Button>
-          <Button type="submit" form={`edit-asset-form-${asset.id}`}>
-            Salvar Alterações
+          <Button type="submit" form={`edit-asset-form-${asset.id}`} disabled={isSaving}>
+            {isSaving ? 'Salvando...' : 'Salvar Alterações'}
           </Button>
         </div>
       </DialogContent>
