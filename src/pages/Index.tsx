@@ -21,6 +21,8 @@ import { ptBR } from 'date-fns/locale'
 
 import { useState, useEffect, useMemo } from 'react'
 import { getAssetCategories } from '@/services/asset_categories'
+import { getAssetTypes } from '@/services/asset_types'
+import * as Icons from 'lucide-react'
 import { deleteAsset } from '@/services/assets'
 import { useRealtime } from '@/hooks/use-realtime'
 import {
@@ -75,10 +77,22 @@ export default function Index() {
     }
   }
 
+  const [assetTypes, setAssetTypes] = useState<any[]>([])
+  const loadAssetTypes = async () => {
+    try {
+      const data = await getAssetTypes()
+      setAssetTypes(data)
+    } catch {
+      /* intentionally ignored */
+    }
+  }
+
   useEffect(() => {
     loadCategories()
+    loadAssetTypes()
   }, [])
   useRealtime('asset_categories', loadCategories)
+  useRealtime('asset_types', loadAssetTypes)
 
   const { toast } = useToast()
 
@@ -130,47 +144,64 @@ export default function Index() {
 
   const allocation = useMemo(() => {
     if (selectedType === 'all') {
-      return [
-        {
-          name: 'Imóveis',
-          value: filteredAssets
-            .filter((a) => a.type === 'property')
-            .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0),
-          color: 'hsl(var(--chart-1))',
-        },
-        {
-          name: 'Veículos',
-          value: filteredAssets
-            .filter((a) => a.type === 'vehicle')
-            .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0),
-          color: 'hsl(var(--chart-2))',
-        },
-        {
-          name: 'Invest. BR',
-          value: filteredAssets
-            .filter((a) => a.type === 'investment')
-            .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0),
-          color: 'hsl(var(--chart-3))',
-        },
-        {
-          name: 'Internacional',
-          value: filteredAssets
-            .filter((a) => a.type === 'international')
-            .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0),
-          color: 'hsl(var(--chart-4))',
-        },
-      ].filter((x) => x.value > 0)
+      const legacyMapping: Record<string, string> = {
+        Imóveis: 'property',
+        Veículos: 'vehicle',
+        Investimentos: 'investment',
+        Internacional: 'international',
+      }
+
+      const mapped = assetTypes
+        .map((t, i) => {
+          const legacyType = legacyMapping[t.name]
+          const value = filteredAssets
+            .filter((a) => a.type_ref === t.id || (legacyType && a.type === legacyType))
+            .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0)
+
+          return {
+            id: t.id,
+            name: t.name,
+            icon: t.icon,
+            value,
+            color: `hsl(var(--chart-${(i % 5) + 1}))`,
+          }
+        })
+        .filter((x) => x.value > 0)
+
+      const unmatchedValue = filteredAssets
+        .filter((a) => {
+          if (a.type_ref) return false
+          const matchedLegacy = assetTypes.some((t) => legacyMapping[t.name] === a.type)
+          return !matchedLegacy
+        })
+        .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0)
+
+      if (unmatchedValue > 0) {
+        mapped.push({
+          id: 'unmatched',
+          name: 'Outros',
+          icon: 'Box',
+          value: unmatchedValue,
+          color: 'hsl(var(--muted))',
+        })
+      }
+
+      return mapped
     } else {
       return categories
         .map((c, i) => ({
+          id: c.id,
           name: c.name,
+          icon: c.icon,
           value: filteredAssets
             .filter((a) => a.category === c.id)
             .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0),
           color: c.color || `hsl(var(--chart-${(i % 5) + 1}))`,
         }))
         .concat({
+          id: 'uncategorized',
           name: 'Sem Categoria',
+          icon: 'Box',
           value: filteredAssets
             .filter((a) => !a.category)
             .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0),
@@ -178,7 +209,7 @@ export default function Index() {
         })
         .filter((x) => x.value > 0)
     }
-  }, [filteredAssets, selectedType, categories, currency])
+  }, [filteredAssets, selectedType, categories, assetTypes, currency])
 
   const evolutionData = useMemo(() => {
     const now = new Date()
@@ -414,42 +445,77 @@ export default function Index() {
           </CardHeader>
           <CardContent>
             {allocation.length > 0 ? (
-              <div className="h-[250px]">
-                <ChartContainer
-                  config={{
-                    property: { label: 'Imóveis', color: 'hsl(var(--chart-1))' },
-                    vehicle: { label: 'Veículos', color: 'hsl(var(--chart-2))' },
-                    investment: { label: 'Investimentos', color: 'hsl(var(--chart-3))' },
-                    international: { label: 'Internacional', color: 'hsl(var(--chart-4))' },
-                  }}
-                  className="h-full w-full"
-                >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={allocation}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={70}
-                        outerRadius={90}
-                        paddingAngle={3}
+              <div className="flex flex-col gap-6">
+                <div className="h-[220px]">
+                  <ChartContainer
+                    config={Object.fromEntries(
+                      allocation.map((a) => [a.name, { label: a.name, color: a.color }]),
+                    )}
+                    className="h-full w-full"
+                  >
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={allocation}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={65}
+                          outerRadius={85}
+                          paddingAngle={3}
+                        >
+                          {allocation.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <ChartTooltip
+                          content={
+                            <ChartTooltipContent
+                              formatter={(val: number) => formatCurrency(val, currency)}
+                            />
+                          }
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </div>
+                <div className="w-full space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                  {allocation.map((item) => {
+                    const IconComponent = item.icon
+                      ? (Icons as any)[item.icon] || Icons.Box
+                      : Icons.Box
+                    const percentage = (
+                      (item.value / allocation.reduce((acc, curr) => acc + curr.value, 0)) *
+                      100
+                    ).toFixed(1)
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between p-2.5 rounded-lg bg-muted/40 border border-border/50 hover:bg-muted/60 transition-colors"
                       >
-                        {allocation.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <ChartTooltip
-                        content={
-                          <ChartTooltipContent
-                            formatter={(val: number) => formatCurrency(val, currency)}
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-3 h-3 rounded-full shrink-0"
+                            style={{ backgroundColor: item.color }}
                           />
-                        }
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+                          <div className="text-muted-foreground p-1.5 bg-background rounded-md shadow-sm">
+                            <IconComponent size={14} />
+                          </div>
+                          <span className="text-sm font-medium line-clamp-1">{item.name}</span>
+                        </div>
+                        <div className="text-right shrink-0 ml-2">
+                          <p className="text-sm font-semibold">
+                            {formatCurrency(item.value, currency)}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground font-medium">
+                            {percentage}%
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             ) : (
               <div className="h-[250px] flex items-center justify-center border border-dashed rounded-lg">
