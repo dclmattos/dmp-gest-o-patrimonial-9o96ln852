@@ -24,10 +24,16 @@ interface AssetCardProps {
   onUpdate?: (updated: any) => void
 }
 
-export function AssetCard({ asset, categories, types, onDelete, onUpdate }: AssetCardProps) {
+export function AssetCard({
+  asset,
+  categories = [],
+  types = [],
+  onDelete,
+  onUpdate,
+}: AssetCardProps) {
   const { currency } = useCurrency()
 
-  const assetType = types.find((t) => t.id === asset.type_ref)
+  const assetType = types?.find((t) => t.id === asset.type_ref)
   const IconComponent =
     assetType && assetType.icon && Icons[assetType.icon as keyof typeof Icons]
       ? Icons[assetType.icon as keyof typeof Icons]
@@ -46,7 +52,7 @@ export function AssetCard({ asset, categories, types, onDelete, onUpdate }: Asse
             </Badge>
             {asset.category &&
               (() => {
-                const cat = categories.find((c) => c.id === asset.category)
+                const cat = categories?.find((c) => c.id === asset.category)
                 if (!cat) return null
                 const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
                 return (
