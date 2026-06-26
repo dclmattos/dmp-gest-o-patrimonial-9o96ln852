@@ -107,14 +107,14 @@ export function AssetCard({ asset, categories, onDelete, onUpdate }: AssetCardPr
         </p>
 
         <div className="mt-6 pt-4 border-t border-border/40 space-y-2">
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">Valor de Base de Compra</span>
             <span className="font-medium">
               {formatCurrency(asset.purchase_price || 0, asset.currency)}
             </span>
           </div>
           {asset.acquisition_date && (
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Data de Aquisição</span>
               <span className="font-medium">
                 {new Date(asset.acquisition_date).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
@@ -122,7 +122,7 @@ export function AssetCard({ asset, categories, onDelete, onUpdate }: AssetCardPr
             </div>
           )}
           {asset.location && (
-            <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Localização</span>
               <span className="font-medium truncate max-w-[150px]">{asset.location}</span>
             </div>
