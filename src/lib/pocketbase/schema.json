@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-26T18:33:37.417Z",
+  "generatedAt": "2026-06-26T18:43:55.500Z",
   "collections": [
     {
       "name": "users",
@@ -260,6 +260,12 @@
           "required": false,
           "system": false,
           "collectionRef": "assets"
+        },
+        {
+          "name": "sort_order",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
@@ -327,6 +333,12 @@
           "required": false,
           "system": false,
           "collectionRef": "assets"
+        },
+        {
+          "name": "sort_order",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []

@@ -3,7 +3,7 @@ import { getSelectedUserId } from '@/stores/selectedUser'
 
 export const getLiabilities = async (userId?: string) => {
   const filter = userId ? `user = "${userId}"` : ''
-  return await pb.collection('liabilities').getFullList({ filter })
+  return await pb.collection('liabilities').getFullList({ filter, sort: 'sort_order,-created' })
 }
 
 export const createLiability = async (data: any) => {

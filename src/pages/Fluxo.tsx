@@ -11,8 +11,8 @@ import { AddLiabilityDialog } from '@/components/AddLiabilityDialog'
 import { EditReceivableDialog } from '@/components/EditReceivableDialog'
 import { EditLiabilityDialog } from '@/components/EditLiabilityDialog'
 import { Trash2 } from 'lucide-react'
-import { deleteReceivable } from '@/services/receivables'
-import { deleteLiability } from '@/services/liabilities'
+import { deleteReceivable, updateReceivable } from '@/services/receivables'
+import { deleteLiability, updateLiability } from '@/services/liabilities'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -112,6 +112,76 @@ export default function Fluxo() {
     selectedAsset === 'all' ? receivables : receivables.filter((r) => r.asset === selectedAsset)
   const filteredLiabilities =
     selectedAsset === 'all' ? liabilities : liabilities.filter((l) => l.asset === selectedAsset)
+
+  const handleReorder = async (
+    type: 'receivable' | 'liability',
+    draggedId: string,
+    targetId: string,
+  ) => {
+    const filteredList = type === 'receivable' ? filteredReceivables : filteredLiabilities
+
+    const draggedIndex = filteredList.findIndex((i) => i.id === draggedId)
+    const targetIndex = filteredList.findIndex((i) => i.id === targetId)
+
+    if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) return
+
+    const list = type === 'receivable' ? [...receivables] : [...liabilities]
+    const itemToMove = list.find((i) => i.id === draggedId)
+    if (!itemToMove) return
+
+    const newFilteredList = [...filteredList]
+    const [dragged] = newFilteredList.splice(draggedIndex, 1)
+    newFilteredList.splice(targetIndex, 0, dragged)
+
+    let newSortOrder = 0
+    const prevItem = newFilteredList[targetIndex - 1]
+    const nextItem = newFilteredList[targetIndex + 1]
+
+    if (!prevItem && nextItem) {
+      newSortOrder = (nextItem.sort_order || 2) - 1
+    } else if (!nextItem && prevItem) {
+      newSortOrder = (prevItem.sort_order || 0) + 1
+    } else if (prevItem && nextItem) {
+      newSortOrder = ((prevItem.sort_order || 0) + (nextItem.sort_order || 0)) / 2
+    } else {
+      newSortOrder = 1
+    }
+
+    itemToMove.sort_order = newSortOrder
+
+    if (type === 'receivable') {
+      setReceivables(
+        [...list].sort(
+          (a, b) =>
+            (a.sort_order || 0) - (b.sort_order || 0) ||
+            new Date(b.created).getTime() - new Date(a.created).getTime(),
+        ),
+      )
+    } else {
+      setLiabilities(
+        [...list].sort(
+          (a, b) =>
+            (a.sort_order || 0) - (b.sort_order || 0) ||
+            new Date(b.created).getTime() - new Date(a.created).getTime(),
+        ),
+      )
+    }
+
+    try {
+      if (type === 'receivable') {
+        await updateReceivable(draggedId, { sort_order: newSortOrder })
+      } else {
+        await updateLiability(draggedId, { sort_order: newSortOrder })
+      }
+    } catch (err: any) {
+      toast({
+        title: 'Erro',
+        description: 'Erro ao reordenar: ' + (err.message || ''),
+        variant: 'destructive',
+      })
+      loadData()
+    }
+  }
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -317,6 +387,7 @@ export default function Fluxo() {
         receivables={filteredReceivables}
         liabilities={filteredLiabilities}
         currency={currency}
+        onReorder={handleReorder}
       />
 
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>

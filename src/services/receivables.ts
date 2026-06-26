@@ -3,7 +3,7 @@ import { getSelectedUserId } from '@/stores/selectedUser'
 
 export const getReceivables = async (userId?: string) => {
   const filter = userId ? `user = "${userId}"` : ''
-  return await pb.collection('receivables').getFullList({ filter })
+  return await pb.collection('receivables').getFullList({ filter, sort: 'sort_order,-created' })
 }
 
 export const createReceivable = async (data: any) => {

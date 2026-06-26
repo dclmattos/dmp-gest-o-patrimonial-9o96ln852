@@ -11,7 +11,7 @@ import {
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { formatCurrency, convertValue } from '@/hooks/use-currency'
-import { Calendar as CalendarIcon } from 'lucide-react'
+import { Calendar as CalendarIcon, GripVertical } from 'lucide-react'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Calendar } from '@/components/ui/calendar'
@@ -30,9 +30,57 @@ interface MonthlyProjectionProps {
   receivables: any[]
   liabilities: any[]
   currency: string
+  onReorder?: (type: 'receivable' | 'liability', draggedId: string, targetId: string) => void
 }
 
-export function MonthlyProjection({ receivables, liabilities, currency }: MonthlyProjectionProps) {
+export function MonthlyProjection({
+  receivables,
+  liabilities,
+  currency,
+  onReorder,
+}: MonthlyProjectionProps) {
+  const [draggedItem, setDraggedItem] = useState<{ id: string; type: string } | null>(null)
+  const [dragOverItem, setDragOverItem] = useState<{ id: string; type: string } | null>(null)
+
+  const handleDragStart = (e: React.DragEvent, id: string, type: 'receivable' | 'liability') => {
+    e.dataTransfer.setData('text/plain', JSON.stringify({ id, type }))
+    e.dataTransfer.effectAllowed = 'move'
+    setDraggedItem({ id, type })
+  }
+
+  const handleDragOver = (e: React.DragEvent, id: string, type: 'receivable' | 'liability') => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (draggedItem?.id !== id && draggedItem?.type === type) {
+      setDragOverItem({ id, type })
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOverItem(null)
+  }
+
+  const handleDrop = (e: React.DragEvent, id: string, type: 'receivable' | 'liability') => {
+    e.preventDefault()
+    setDragOverItem(null)
+    setDraggedItem(null)
+
+    try {
+      const data = JSON.parse(e.dataTransfer.getData('text/plain'))
+      if (data.type !== type || data.id === id || !onReorder) return
+
+      onReorder(data.type, data.id, id)
+    } catch {
+      /* intentionally ignored */
+    }
+  }
+
+  const handleDragEnd = () => {
+    setDraggedItem(null)
+    setDragOverItem(null)
+  }
+
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>({
     from: startOfMonth(new Date()),
     to: endOfMonth(addMonths(new Date(), 5)),
@@ -207,9 +255,29 @@ export function MonthlyProjection({ receivables, liabilities, currency }: Monthl
                     </TableCell>
                   </TableRow>
                   {projectionData.receivableRows.map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-border/40 pl-6 whitespace-nowrap">
-                        {r.source}
+                    <TableRow
+                      key={r.id}
+                      draggable={!!onReorder}
+                      onDragStart={(e) => handleDragStart(e, r.id, 'receivable')}
+                      onDragOver={(e) => handleDragOver(e, r.id, 'receivable')}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, r.id, 'receivable')}
+                      onDragEnd={handleDragEnd}
+                      className={cn(
+                        onReorder && 'cursor-move transition-colors',
+                        draggedItem?.id === r.id && 'opacity-50',
+                        dragOverItem?.id === r.id &&
+                          dragOverItem?.type === 'receivable' &&
+                          'bg-emerald-100/50 dark:bg-emerald-900/40',
+                      )}
+                    >
+                      <TableCell className="sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-border/40 pl-2 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          {onReorder && (
+                            <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
+                          )}
+                          <span className={cn(!onReorder && 'ml-4')}>{r.source}</span>
+                        </div>
                       </TableCell>
                       {r.amounts.map((amt, i) => (
                         <TableCell
@@ -235,9 +303,29 @@ export function MonthlyProjection({ receivables, liabilities, currency }: Monthl
                     </TableCell>
                   </TableRow>
                   {projectionData.liabilityRows.map((l) => (
-                    <TableRow key={l.id}>
-                      <TableCell className="sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-border/40 pl-6 whitespace-nowrap">
-                        {l.name}
+                    <TableRow
+                      key={l.id}
+                      draggable={!!onReorder}
+                      onDragStart={(e) => handleDragStart(e, l.id, 'liability')}
+                      onDragOver={(e) => handleDragOver(e, l.id, 'liability')}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, l.id, 'liability')}
+                      onDragEnd={handleDragEnd}
+                      className={cn(
+                        onReorder && 'cursor-move transition-colors',
+                        draggedItem?.id === l.id && 'opacity-50',
+                        dragOverItem?.id === l.id &&
+                          dragOverItem?.type === 'liability' &&
+                          'bg-rose-100/50 dark:bg-rose-900/40',
+                      )}
+                    >
+                      <TableCell className="sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-border/40 pl-2 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          {onReorder && (
+                            <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
+                          )}
+                          <span className={cn(!onReorder && 'ml-4')}>{l.name}</span>
+                        </div>
                       </TableCell>
                       {l.amounts.map((amt, i) => (
                         <TableCell key={i} className="text-right text-rose-600 whitespace-nowrap">
