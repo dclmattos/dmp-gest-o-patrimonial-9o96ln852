@@ -12,11 +12,24 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
+  ComposedChart,
+  Bar,
+  Line,
 } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { ArrowUpRight, ArrowDownRight, Building2, Globe, Wallet } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight, Building2, Globe } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
-import { format, parseISO } from 'date-fns'
+import {
+  format,
+  parseISO,
+  startOfMonth,
+  endOfMonth,
+  addMonths,
+  eachMonthOfInterval,
+  getYear,
+  getMonth,
+  isSameMonth,
+} from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 import { useState, useEffect, useMemo } from 'react'
@@ -354,6 +367,77 @@ export default function Index() {
     }
   }, [evolutionData])
 
+  const projectionMonths = useMemo(() => {
+    const from = startOfMonth(new Date())
+    const to = endOfMonth(addMonths(new Date(), 5))
+    return eachMonthOfInterval({ start: from, end: to })
+  }, [])
+
+  const flowChartData = useMemo(() => {
+    return projectionMonths.map((month) => {
+      const monthStart = startOfMonth(month)
+      const monthEnd = endOfMonth(month)
+
+      let totalIn = 0
+      filteredReceivables.forEach((r) => {
+        const amount = convertValue(r.amount, 'BRL', currency)
+        const expected = r.expected_date ? new Date(r.expected_date) : null
+
+        if (!expected) return
+
+        if (r.frequency === 'one-time') {
+          if (isSameMonth(expected, month)) totalIn += amount
+        } else {
+          if (expected <= monthEnd) {
+            const diffMonths =
+              (getYear(month) - getYear(expected)) * 12 + (getMonth(month) - getMonth(expected))
+            if (diffMonths >= 0) {
+              if (r.frequency === 'monthly') totalIn += amount
+              else if (r.frequency === 'quarterly' && diffMonths % 3 === 0) totalIn += amount
+              else if (r.frequency === 'yearly' && diffMonths % 12 === 0) totalIn += amount
+            }
+          }
+        }
+      })
+
+      let totalOut = 0
+      filteredLiabilities.forEach((l) => {
+        const amount = convertValue(
+          l.monthly_installment || l.remaining_balance || 0,
+          'BRL',
+          currency,
+        )
+        const start = l.start_date
+          ? new Date(l.start_date)
+          : l.due_date
+            ? new Date(l.due_date)
+            : null
+        const end = l.end_date ? new Date(l.end_date) : null
+
+        if (l.is_recurring) {
+          if (start && start <= monthEnd && (!end || end >= monthStart)) {
+            totalOut += amount
+          }
+        } else {
+          if (l.due_date) {
+            const due = new Date(l.due_date)
+            if (isSameMonth(due, month)) totalOut += amount
+          } else if (l.start_date) {
+            const s = new Date(l.start_date)
+            if (isSameMonth(s, month)) totalOut += amount
+          }
+        }
+      })
+
+      return {
+        month: format(month, 'MMM/yy', { locale: ptBR }),
+        in: totalIn,
+        out: totalOut,
+        balance: totalIn - totalOut,
+      }
+    })
+  }, [projectionMonths, filteredReceivables, filteredLiabilities, currency])
+
   return (
     <div className="space-y-8 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
@@ -638,52 +722,84 @@ export default function Index() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="shadow-subtle border-none bg-rose-50 dark:bg-rose-950/20 flex flex-col">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-rose-800 dark:text-rose-400 uppercase tracking-widest flex items-center gap-2">
-              <Wallet size={16} />
-              Passivos & Obrigações
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col">
-            <div className="bg-white dark:bg-slate-900 px-4 py-3 rounded-xl border border-rose-100 dark:border-rose-900/50 shadow-sm flex flex-col justify-center flex-1">
-              <p className="text-sm text-muted-foreground mb-1">Saldo Devedor Total</p>
-              <p className="font-medium font-serif text-rose-600 dark:text-rose-400 text-2xl">
-                {formatCurrency(totalLiabilities, currency)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-subtle border-none bg-emerald-50 dark:bg-emerald-950/20 flex flex-col">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-emerald-800 dark:text-emerald-400 uppercase tracking-widest">
-              Próximos Recebimentos
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
-              {filteredReceivables.slice(0, 2).map((r) => (
-                <div
-                  key={r.id}
-                  className="bg-white dark:bg-slate-900 px-4 py-3 rounded-xl border border-emerald-100 dark:border-emerald-900/50 shadow-sm flex flex-col justify-center h-full"
+      <Card className="shadow-subtle border-none">
+        <CardHeader>
+          <CardTitle className="font-serif text-xl">Projeção Mensal de Fluxo (6 Meses)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] w-full">
+            <ChartContainer
+              config={{
+                in: { label: 'Entradas', color: '#10b981' },
+                out: { label: 'Saídas', color: '#f43f5e' },
+                balance: { label: 'Saldo Líquido', color: 'hsl(var(--primary))' },
+              }}
+              className="h-full w-full"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart
+                  data={flowChartData}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                 >
-                  <p className="text-sm text-muted-foreground truncate mb-1">{r.source}</p>
-                  <p className="font-medium text-emerald-600 text-2xl">
-                    {formatCurrency(convertValue(r.amount, 'BRL', currency), currency)}
-                  </p>
-                </div>
-              ))}
-              {filteredReceivables.length === 0 && (
-                <div className="bg-white/50 dark:bg-slate-900/50 px-4 py-3 rounded-xl border border-dashed border-emerald-200 dark:border-emerald-900/50 flex items-center justify-center col-span-full h-full min-h-[84px]">
-                  <p className="text-sm text-muted-foreground">Nenhum fluxo programado.</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="hsl(var(--muted-foreground)/0.2)"
+                  />
+                  <XAxis
+                    dataKey="month"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    className="capitalize"
+                  />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                    tickFormatter={(val) =>
+                      new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency,
+                        notation: 'compact',
+                        compactDisplay: 'short',
+                        maximumFractionDigits: 1,
+                      }).format(val)
+                    }
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(val: number, name: string) => {
+                          const formatted = formatCurrency(val, currency)
+                          if (name === 'out') return `-${formatted}`
+                          if (name === 'balance') return val > 0 ? `+${formatted}` : formatted
+                          return formatted
+                        }}
+                      />
+                    }
+                  />
+                  <Bar dataKey="in" fill="var(--color-in)" radius={[4, 4, 0, 0]} maxBarSize={30} />
+                  <Bar
+                    dataKey="out"
+                    fill="var(--color-out)"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={30}
+                  />
+                  <Line
+                    dataKey="balance"
+                    type="monotone"
+                    stroke="var(--color-balance)"
+                    strokeWidth={2}
+                    dot={{ r: 4, fill: 'var(--color-balance)' }}
+                    activeDot={{ r: 6 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </div>
+        </CardContent>
+      </Card>
 
       {categories.filter((c) => c.goal_value > 0).length > 0 && (
         <div className="mt-8">
