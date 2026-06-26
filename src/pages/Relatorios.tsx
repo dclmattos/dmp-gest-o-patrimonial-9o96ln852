@@ -72,14 +72,17 @@ export default function Relatorios() {
       getUsers()
         .then((data) => {
           setUsers(data)
-          if (data.length > 0 && selectedClient === user.id) {
-            const firstUser = data.find((u) => u.role === 'user') || data[0]
-            if (firstUser) setSelectedClient(firstUser.id)
-          }
+          setSelectedClient((current) => {
+            if (current === user.id) {
+              const firstUser = data.find((u) => u.role === 'user') || data[0]
+              return firstUser ? firstUser.id : current
+            }
+            return current
+          })
         })
         .catch(() => {})
     }
-  }, [user, selectedClient])
+  }, [user?.id, user?.role])
 
   const filteredAssets = useMemo(() => {
     return assets.filter((a) => {
@@ -296,7 +299,8 @@ export default function Relatorios() {
                   <SelectContent>
                     {users.map((u) => (
                       <SelectItem key={u.id} value={u.id}>
-                        {u.name || u.email || `Cliente ${u.id}`}
+                        {u.name || u.email || `Cliente ${u.id}`}{' '}
+                        {u.role === 'admin' ? '(Admin)' : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
