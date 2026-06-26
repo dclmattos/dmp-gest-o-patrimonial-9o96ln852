@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Trash2, Tags, Plus } from 'lucide-react'
+import { Trash2, Tags, Plus, ChevronUp, ChevronDown } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import {
@@ -87,12 +87,15 @@ export function CategoryManager() {
     if (!name.trim() || !user) return
     try {
       const goal = parseFloat(goalValue)
+      const maxSortOrder =
+        categories.length > 0 ? Math.max(...categories.map((c) => c.sort_order || 0)) : 0
       await createAssetCategory({
         user: user.id,
         name,
         color,
         icon,
         goal_value: !isNaN(goal) && goal > 0 ? goal : 0,
+        sort_order: maxSortOrder + 1,
       })
       setName('')
       setColor(COLORS[0])
@@ -100,6 +103,54 @@ export function CategoryManager() {
       setGoalValue('')
     } catch (err) {
       console.error(err)
+    }
+  }
+
+  const handleMoveUp = async (index: number) => {
+    if (index === 0) return
+    const current = categories[index]
+    const prev = categories[index - 1]
+
+    const currentSort = current.sort_order ?? index + 1
+    const prevSort = prev.sort_order ?? index
+
+    try {
+      const newCats = [...categories]
+      newCats[index] = { ...current, sort_order: prevSort }
+      newCats[index - 1] = { ...prev, sort_order: currentSort }
+      setCategories(newCats.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)))
+
+      await Promise.all([
+        updateAssetCategory(current.id, { sort_order: prevSort }),
+        updateAssetCategory(prev.id, { sort_order: currentSort }),
+      ])
+    } catch (err) {
+      console.error(err)
+      loadCategories()
+    }
+  }
+
+  const handleMoveDown = async (index: number) => {
+    if (index === categories.length - 1) return
+    const current = categories[index]
+    const next = categories[index + 1]
+
+    const currentSort = current.sort_order ?? index + 1
+    const nextSort = next.sort_order ?? index + 2
+
+    try {
+      const newCats = [...categories]
+      newCats[index] = { ...current, sort_order: nextSort }
+      newCats[index + 1] = { ...next, sort_order: currentSort }
+      setCategories(newCats.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)))
+
+      await Promise.all([
+        updateAssetCategory(current.id, { sort_order: nextSort }),
+        updateAssetCategory(next.id, { sort_order: currentSort }),
+      ])
+    } catch (err) {
+      console.error(err)
+      loadCategories()
     }
   }
 
@@ -217,7 +268,7 @@ export function CategoryManager() {
               </div>
             ) : (
               <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2">
-                {categories.map((cat) => {
+                {categories.map((cat, index) => {
                   const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
                   return (
                     <div
@@ -225,6 +276,24 @@ export function CategoryManager() {
                       className="flex items-center justify-between p-3 rounded-md border border-border/50 bg-card"
                     >
                       <div className="flex items-center gap-3">
+                        <div className="flex flex-col">
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                            disabled={index === 0}
+                            onClick={() => handleMoveUp(index)}
+                          >
+                            <ChevronUp size={16} />
+                          </button>
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                            disabled={index === categories.length - 1}
+                            onClick={() => handleMoveDown(index)}
+                          >
+                            <ChevronDown size={16} />
+                          </button>
+                        </div>
                         <div className="p-2 rounded-full bg-muted" style={{ color: cat.color }}>
                           {/* @ts-expect-error */}
                           <Icon size={16} />

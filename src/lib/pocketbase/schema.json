@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-26T18:20:48.009Z",
+  "generatedAt": "2026-06-26T18:28:24.398Z",
   "collections": [
     {
       "name": "users",
@@ -437,6 +437,12 @@
         },
         {
           "name": "goal_value",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "sort_order",
           "type": "number",
           "required": false,
           "system": false
