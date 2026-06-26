@@ -23,6 +23,17 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/hooks/use-auth'
+import { getUsers } from '@/services/users'
+import { setSelectedUserId } from '@/stores/selectedUser'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 
 const FREQUENCY_LABELS: Record<string, string> = {
   'one-time': 'Única',
@@ -32,8 +43,11 @@ const FREQUENCY_LABELS: Record<string, string> = {
 }
 
 export default function Fluxo() {
+  const { user } = useAuth()
   const [receivables, setReceivables] = useState<any[]>([])
   const [liabilities, setLiabilities] = useState<any[]>([])
+  const [users, setUsers] = useState<any[]>([])
+  const [selectedClient, setSelectedClient] = useState<string>('all')
   const { currency } = useCurrency()
   const { toast } = useToast()
   const [itemToDelete, setItemToDelete] = useState<{
@@ -42,14 +56,27 @@ export default function Fluxo() {
     name: string
   } | null>(null)
 
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      getUsers()
+        .then(setUsers)
+        .catch(() => {})
+    }
+  }, [user?.role])
+
+  useEffect(() => {
+    setSelectedUserId(selectedClient === 'all' ? null : selectedClient)
+  }, [selectedClient])
+
   const loadData = () => {
-    getReceivables().then(setReceivables)
-    getLiabilities().then(setLiabilities)
+    const filterUserId = selectedClient !== 'all' ? selectedClient : undefined
+    getReceivables(filterUserId).then(setReceivables)
+    getLiabilities(filterUserId).then(setLiabilities)
   }
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [selectedClient])
 
   useRealtime('receivables', loadData)
   useRealtime('liabilities', loadData)
@@ -77,9 +104,31 @@ export default function Fluxo() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div>
-        <h2 className="text-3xl font-serif tracking-tight">Fluxo de Caixa</h2>
-        <p className="text-muted-foreground mt-1">Gerenciamento previsível de entradas e saídas.</p>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
+        <div>
+          <h2 className="text-3xl font-serif tracking-tight">Fluxo de Caixa</h2>
+          <p className="text-muted-foreground mt-1">
+            Gerenciamento previsível de entradas e saídas.
+          </p>
+        </div>
+        {user?.role === 'admin' && (
+          <div className="w-full sm:w-64 space-y-2">
+            <Label>Cliente</Label>
+            <Select value={selectedClient} onValueChange={setSelectedClient}>
+              <SelectTrigger className="bg-background">
+                <SelectValue placeholder="Selecione um cliente" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Clientes</SelectItem>
+                {users.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.name || u.email || `Cliente ${u.id}`} {u.role === 'admin' ? '(Admin)' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
