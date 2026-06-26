@@ -47,81 +47,86 @@ export function MonthlyProjection({ receivables, liabilities, currency }: Monthl
     }
   }, [dateRange])
 
-  const reportWithCumulative = useMemo(() => {
-    const data = months.map((month) => {
-      const monthStart = startOfMonth(month)
-      const monthEnd = endOfMonth(month)
+  const projectionData = useMemo(() => {
+    const receivableRows = receivables.map((r) => {
+      const amount = convertValue(r.amount, 'BRL', currency)
+      const expected = r.expected_date ? new Date(r.expected_date) : null
 
-      let totalIn = 0
-      receivables.forEach((r) => {
-        const amount = convertValue(r.amount, 'BRL', currency)
-        if (!r.expected_date) return
-        const expected = new Date(r.expected_date)
+      const amounts = months.map((month) => {
+        if (!expected) return 0
+        const monthStart = startOfMonth(month)
+        const monthEnd = endOfMonth(month)
+        let itemTotal = 0
 
         if (r.frequency === 'one-time') {
           if (isSameMonth(expected, month)) {
-            totalIn += amount
+            itemTotal = amount
           }
         } else {
           if (expected <= monthEnd) {
             const diffMonths =
               (getYear(month) - getYear(expected)) * 12 + (getMonth(month) - getMonth(expected))
             if (diffMonths >= 0) {
-              if (r.frequency === 'monthly') totalIn += amount
-              else if (r.frequency === 'quarterly' && diffMonths % 3 === 0) totalIn += amount
-              else if (r.frequency === 'yearly' && diffMonths % 12 === 0) totalIn += amount
+              if (r.frequency === 'monthly') itemTotal = amount
+              else if (r.frequency === 'quarterly' && diffMonths % 3 === 0) itemTotal = amount
+              else if (r.frequency === 'yearly' && diffMonths % 12 === 0) itemTotal = amount
             }
           }
         }
+        return itemTotal
       })
+      return { id: r.id, source: r.source, amounts }
+    })
 
-      let totalOut = 0
-      liabilities.forEach((l) => {
-        const amount = convertValue(
-          l.monthly_installment || l.remaining_balance || 0,
-          'BRL',
-          currency,
-        )
+    const liabilityRows = liabilities.map((l) => {
+      const amount = convertValue(
+        l.monthly_installment || l.remaining_balance || 0,
+        'BRL',
+        currency,
+      )
+      const start = l.start_date ? new Date(l.start_date) : l.due_date ? new Date(l.due_date) : null
+      const end = l.end_date ? new Date(l.end_date) : null
+
+      const amounts = months.map((month) => {
+        const monthStart = startOfMonth(month)
+        const monthEnd = endOfMonth(month)
+        let itemTotal = 0
 
         if (l.is_recurring) {
-          const start = l.start_date
-            ? new Date(l.start_date)
-            : l.due_date
-              ? new Date(l.due_date)
-              : null
-          const end = l.end_date ? new Date(l.end_date) : null
-
           if (start && start <= monthEnd && (!end || end >= monthStart)) {
-            totalOut += amount
+            itemTotal = amount
           }
         } else {
           if (l.due_date) {
             const due = new Date(l.due_date)
             if (isSameMonth(due, month)) {
-              totalOut += amount
+              itemTotal = amount
             }
           } else if (l.start_date) {
-            const start = new Date(l.start_date)
-            if (isSameMonth(start, month)) {
-              totalOut += amount
+            const s = new Date(l.start_date)
+            if (isSameMonth(s, month)) {
+              itemTotal = amount
             }
           }
         }
+        return itemTotal
       })
+      return { id: l.id, name: l.name, amounts }
+    })
 
-      return {
-        month,
-        inflow: totalIn,
-        outflow: totalOut,
-        balance: totalIn - totalOut,
-      }
+    const totals = months.map((_, i) => {
+      const totalIn = receivableRows.reduce((sum, r) => sum + r.amounts[i], 0)
+      const totalOut = liabilityRows.reduce((sum, l) => sum + l.amounts[i], 0)
+      return { totalIn, totalOut, balance: totalIn - totalOut }
     })
 
     let runningTotal = 0
-    return data.map((d) => {
-      runningTotal += d.balance
-      return { ...d, cumulative: runningTotal }
+    const summary = totals.map((t) => {
+      runningTotal += t.balance
+      return { ...t, cumulative: runningTotal }
     })
+
+    return { receivableRows, liabilityRows, summary }
   }, [months, receivables, liabilities, currency])
 
   return (
@@ -172,58 +177,111 @@ export function MonthlyProjection({ receivables, liabilities, currency }: Monthl
         </div>
       </div>
 
-      {reportWithCumulative.length > 0 ? (
+      {months.length > 0 ? (
         <div className="rounded-md border border-border/50 shadow-elevation bg-white dark:bg-slate-900 overflow-x-auto relative">
           <Table className="min-w-max">
             <TableHeader className="bg-muted/50">
               <TableRow>
-                <TableHead className="w-[200px] sticky left-0 bg-muted/50 z-10 whitespace-nowrap border-r border-border/40">
-                  Resumo
+                <TableHead className="w-[200px] sticky left-0 bg-muted/50 z-20 whitespace-nowrap border-r border-border/40">
+                  Descrição
                 </TableHead>
-                {reportWithCumulative.map((d, i) => (
+                {months.map((month, i) => (
                   <TableHead
                     key={i}
                     className="text-right min-w-[120px] whitespace-nowrap capitalize"
                   >
-                    {format(d.month, 'MMM/yyyy', { locale: ptBR })}
+                    {format(month, 'MMM/yyyy', { locale: ptBR })}
                   </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow>
-                <TableCell className="font-medium sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-border/40 whitespace-nowrap">
-                  Entradas (Total)
+              {projectionData.receivableRows.length > 0 && (
+                <>
+                  <TableRow className="bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20">
+                    <TableCell
+                      colSpan={months.length + 1}
+                      className="font-semibold text-emerald-700 dark:text-emerald-400 sticky left-0 z-10 border-r border-border/40"
+                    >
+                      Entradas
+                    </TableCell>
+                  </TableRow>
+                  {projectionData.receivableRows.map((r) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-border/40 pl-6 whitespace-nowrap">
+                        {r.source}
+                      </TableCell>
+                      {r.amounts.map((amt, i) => (
+                        <TableCell
+                          key={i}
+                          className="text-right text-emerald-600 whitespace-nowrap"
+                        >
+                          {amt > 0 ? formatCurrency(amt, currency) : '—'}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </>
+              )}
+
+              {projectionData.liabilityRows.length > 0 && (
+                <>
+                  <TableRow className="bg-rose-50/50 dark:bg-rose-950/20 hover:bg-rose-50/50 dark:hover:bg-rose-950/20">
+                    <TableCell
+                      colSpan={months.length + 1}
+                      className="font-semibold text-rose-700 dark:text-rose-400 sticky left-0 z-10 border-r border-border/40"
+                    >
+                      Saídas / Obrigações
+                    </TableCell>
+                  </TableRow>
+                  {projectionData.liabilityRows.map((l) => (
+                    <TableRow key={l.id}>
+                      <TableCell className="sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-border/40 pl-6 whitespace-nowrap">
+                        {l.name}
+                      </TableCell>
+                      {l.amounts.map((amt, i) => (
+                        <TableCell key={i} className="text-right text-rose-600 whitespace-nowrap">
+                          {amt > 0 ? `-${formatCurrency(amt, currency)}` : '—'}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </>
+              )}
+
+              <TableRow className="bg-muted/10 hover:bg-muted/10">
+                <TableCell className="font-medium sticky left-0 bg-muted/10 z-10 border-r border-border/40 whitespace-nowrap">
+                  Total Entradas
                 </TableCell>
-                {reportWithCumulative.map((d, i) => (
+                {projectionData.summary.map((s, i) => (
                   <TableCell key={i} className="text-right text-emerald-600 whitespace-nowrap">
-                    {formatCurrency(d.inflow, currency)}
+                    {formatCurrency(s.totalIn, currency)}
                   </TableCell>
                 ))}
               </TableRow>
-              <TableRow>
-                <TableCell className="font-medium sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-border/40 whitespace-nowrap">
-                  Saídas (Total)
+              <TableRow className="bg-muted/10 hover:bg-muted/10">
+                <TableCell className="font-medium sticky left-0 bg-muted/10 z-10 border-r border-border/40 whitespace-nowrap">
+                  Total Saídas
                 </TableCell>
-                {reportWithCumulative.map((d, i) => (
+                {projectionData.summary.map((s, i) => (
                   <TableCell key={i} className="text-right text-rose-600 whitespace-nowrap">
-                    -{formatCurrency(d.outflow, currency)}
+                    -{formatCurrency(s.totalOut, currency)}
                   </TableCell>
                 ))}
               </TableRow>
-              <TableRow>
-                <TableCell className="font-medium sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-border/40 whitespace-nowrap">
+              <TableRow className="bg-muted/20 hover:bg-muted/20 border-t-2 border-border">
+                <TableCell className="font-bold sticky left-0 bg-muted/20 z-10 border-r border-border/40 whitespace-nowrap">
                   Saldo Mensal
                 </TableCell>
-                {reportWithCumulative.map((d, i) => (
+                {projectionData.summary.map((s, i) => (
                   <TableCell
                     key={i}
-                    className={`text-right font-medium whitespace-nowrap ${
-                      d.balance >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                    className={`text-right font-bold whitespace-nowrap ${
+                      s.balance >= 0 ? 'text-emerald-600' : 'text-rose-600'
                     }`}
                   >
-                    {d.balance >= 0 && d.balance > 0 ? '+' : ''}
-                    {formatCurrency(d.balance, currency)}
+                    {s.balance >= 0 && s.balance > 0 ? '+' : ''}
+                    {formatCurrency(s.balance, currency)}
                   </TableCell>
                 ))}
               </TableRow>
@@ -231,15 +289,15 @@ export function MonthlyProjection({ receivables, liabilities, currency }: Monthl
                 <TableCell className="font-bold sticky left-0 bg-muted/20 z-10 border-r border-border/40 whitespace-nowrap">
                   Saldo Acumulado
                 </TableCell>
-                {reportWithCumulative.map((d, i) => (
+                {projectionData.summary.map((s, i) => (
                   <TableCell
                     key={i}
                     className={`text-right font-bold whitespace-nowrap ${
-                      d.cumulative >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                      s.cumulative >= 0 ? 'text-emerald-600' : 'text-rose-600'
                     }`}
                   >
-                    {d.cumulative >= 0 && d.cumulative > 0 ? '+' : ''}
-                    {formatCurrency(d.cumulative, currency)}
+                    {s.cumulative >= 0 && s.cumulative > 0 ? '+' : ''}
+                    {formatCurrency(s.cumulative, currency)}
                   </TableCell>
                 ))}
               </TableRow>
