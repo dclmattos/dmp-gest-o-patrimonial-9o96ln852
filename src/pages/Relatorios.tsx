@@ -38,6 +38,13 @@ export default function Relatorios() {
     return new Date().toISOString().substring(0, 10)
   })
 
+  const dateError = useMemo(() => {
+    if (startDate && endDate && startDate > endDate) {
+      return 'A data de início não pode ser maior que a data de fim.'
+    }
+    return null
+  }, [startDate, endDate])
+
   const loadCategories = async () => {
     try {
       const data = await getAssetCategories()
@@ -107,45 +114,70 @@ export default function Relatorios() {
       startTotalValue === 0 ? (endTotalValue > 0 ? 100 : 0) : (difference / startTotalValue) * 100
     const isPositive = difference >= 0
 
-    const chartData = []
+    const chartData: any[] = []
 
-    let chartStart = ''
-    const validAcqDates = filteredAssets
-      .map((a) => a.acquisition_date)
-      .filter(Boolean)
-      .sort()
-    if (validAcqDates.length > 0) {
-      chartStart = validAcqDates[0].substring(0, 10)
-    } else {
+    let chartStart = startDate
+    let chartEnd = endDate
+
+    if (!chartStart) {
       const d = new Date()
       d.setMonth(d.getMonth() - 6)
       chartStart = d.toISOString().substring(0, 10)
     }
-    const chartEnd = new Date().toISOString().substring(0, 10)
+    if (!chartEnd) {
+      chartEnd = new Date().toISOString().substring(0, 10)
+    }
 
-    if (chartStart && chartEnd && chartStart.length >= 7 && chartEnd.length >= 7) {
+    if (chartStart <= chartEnd && chartStart.length >= 10 && chartEnd.length >= 10) {
+      const datesToSample = new Set<string>()
+      datesToSample.add(chartStart)
+
       let [year, month] = chartStart.substring(0, 7).split('-').map(Number)
       const [endYear, endMonthNum] = chartEnd.substring(0, 7).split('-').map(Number)
 
       if (year && month && endYear && endMonthNum) {
-        if (year < endYear || (year === endYear && month <= endMonthNum)) {
-          while (year < endYear || (year === endYear && month <= endMonthNum)) {
-            const m = `${year}-${month.toString().padStart(2, '0')}`
-            const dateForMonth = m === chartEnd.substring(0, 7) ? chartEnd : `${m}-28`
+        month++
+        if (month > 12) {
+          month = 1
+          year++
+        }
 
-            let total = 0
-            filteredAssets.forEach((a) => {
-              total += convertValue(getInterpolatedValue(a, dateForMonth), a.currency, currency)
-            })
-            chartData.push({ date: m, value: total })
+        while (year < endYear || (year === endYear && month <= endMonthNum)) {
+          const m = `${year}-${month.toString().padStart(2, '0')}`
+          const isEndMonth = year === endYear && month === endMonthNum
 
-            month++
-            if (month > 12) {
-              month = 1
-              year++
-            }
+          if (!isEndMonth) {
+            datesToSample.add(`${m}-28`)
+          }
+          month++
+          if (month > 12) {
+            month = 1
+            year++
           }
         }
+      }
+
+      if (chartStart !== chartEnd) {
+        datesToSample.add(chartEnd)
+      }
+
+      filteredAssets.forEach((a) => {
+        if (a.acquisition_date) {
+          const acqDate = a.acquisition_date.substring(0, 10)
+          if (acqDate >= chartStart && acqDate <= chartEnd) {
+            datesToSample.add(acqDate)
+          }
+        }
+      })
+
+      const sortedDates = Array.from(datesToSample).sort()
+
+      for (const d of sortedDates) {
+        let total = 0
+        filteredAssets.forEach((a) => {
+          total += convertValue(getInterpolatedValue(a, d), a.currency, currency)
+        })
+        chartData.push({ fullDate: d, value: total })
       }
     }
 
@@ -277,6 +309,7 @@ export default function Relatorios() {
               />
             </div>
           </div>
+          {dateError && <p className="text-sm font-medium text-destructive mt-4">{dateError}</p>}
         </CardContent>
       </Card>
 
@@ -362,7 +395,7 @@ export default function Relatorios() {
                     </linearGradient>
                   </defs>
                   <XAxis
-                    dataKey="date"
+                    dataKey="fullDate"
                     stroke="hsl(var(--muted-foreground))"
                     fontSize={12}
                     tickLine={false}
@@ -370,7 +403,7 @@ export default function Relatorios() {
                     dy={10}
                     tickFormatter={(val) => {
                       try {
-                        return format(parseISO(`${val}-01`), 'MMM yy', { locale: ptBR })
+                        return format(parseISO(val), 'MMM yy', { locale: ptBR })
                       } catch {
                         return val
                       }
@@ -402,7 +435,7 @@ export default function Relatorios() {
                         formatter={(v: number) => formatCurrency(v, currency)}
                         labelFormatter={(label) => {
                           try {
-                            return format(parseISO(`${label}-01`), 'MMMM yyyy', {
+                            return format(parseISO(label), "dd 'de' MMMM yyyy", {
                               locale: ptBR,
                             })
                           } catch {
