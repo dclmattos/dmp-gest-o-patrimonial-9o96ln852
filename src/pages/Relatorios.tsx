@@ -17,11 +17,19 @@ import { format, parseISO } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { useDashboardData } from '@/hooks/use-dashboard-data'
 import { getAssetCategories } from '@/services/asset_categories'
+import { getUsers } from '@/services/users'
 import { useRealtime } from '@/hooks/use-realtime'
+import { useAuth } from '@/hooks/use-auth'
+import { cn } from '@/lib/utils'
 import { Download, TrendingUp, TrendingDown, Wallet, Calendar } from 'lucide-react'
 
 export default function Relatorios() {
-  const { assets } = useDashboardData()
+  const { user } = useAuth()
+  const [users, setUsers] = useState<any[]>([])
+
+  const [selectedClient, setSelectedClient] = useState<string>(user?.id || '')
+
+  const { assets } = useDashboardData(selectedClient)
   const { currency } = useCurrency()
 
   const [categories, setCategories] = useState<any[]>([])
@@ -58,6 +66,20 @@ export default function Relatorios() {
     loadCategories()
   }, [])
   useRealtime('asset_categories', loadCategories)
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      getUsers()
+        .then((data) => {
+          setUsers(data)
+          if (data.length > 0 && selectedClient === user.id) {
+            const firstUser = data.find((u) => u.role === 'user') || data[0]
+            if (firstUser) setSelectedClient(firstUser.id)
+          }
+        })
+        .catch(() => {})
+    }
+  }, [user, selectedClient])
 
   const filteredAssets = useMemo(() => {
     return assets.filter((a) => {
@@ -258,7 +280,29 @@ export default function Relatorios() {
 
       <Card className="shadow-subtle border-none bg-slate-50 dark:bg-slate-900">
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div
+            className={cn(
+              'grid grid-cols-1 sm:grid-cols-2 gap-4',
+              user?.role === 'admin' ? 'lg:grid-cols-5' : 'lg:grid-cols-4',
+            )}
+          >
+            {user?.role === 'admin' && (
+              <div className="space-y-2">
+                <Label>Cliente</Label>
+                <Select value={selectedClient} onValueChange={setSelectedClient}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {users.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name || u.email || `Cliente ${u.id}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Tipo de Ativo</Label>
               <Select value={selectedType} onValueChange={setSelectedType}>
@@ -457,8 +501,14 @@ export default function Relatorios() {
               </ResponsiveContainer>
             </ChartContainer>
           ) : (
-            <div className="w-full h-full flex items-center justify-center border border-dashed rounded-lg">
-              <p className="text-muted-foreground text-sm">Dados insuficientes para o gráfico.</p>
+            <div className="w-full h-full flex flex-col items-center justify-center border border-dashed rounded-lg p-6 text-center">
+              <p className="text-muted-foreground text-sm font-medium">
+                Nenhum dado encontrado para este cliente.
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Ajuste os filtros de data, tipo ou categoria, ou adicione ativos para visualizar o
+                relatório.
+              </p>
             </div>
           )}
         </CardContent>
