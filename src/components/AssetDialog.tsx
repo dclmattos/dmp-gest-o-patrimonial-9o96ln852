@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -16,17 +17,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Plus } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { createAsset } from '@/services/assets'
 import { getAssetCategories } from '@/services/asset_categories'
 import { useRealtime } from '@/hooks/use-realtime'
+import { useToast } from '@/hooks/use-toast'
+import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 
 export function AssetDialog() {
   const [open, setOpen] = useState(false)
   const { user } = useAuth()
+  const { toast } = useToast()
   const [categories, setCategories] = useState<any[]>([])
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const [name, setName] = useState('')
   const [type, setType] = useState('property')
@@ -34,6 +40,9 @@ export function AssetDialog() {
   const [currency, setCurrency] = useState('BRL')
   const [valuation, setValuation] = useState('')
   const [purchasePrice, setPurchasePrice] = useState('')
+  const [acquisitionDate, setAcquisitionDate] = useState('')
+  const [location, setLocation] = useState('')
+  const [notes, setNotes] = useState('')
   const [categoryId, setCategoryId] = useState('none')
 
   const loadCategories = async () => {
@@ -46,13 +55,28 @@ export function AssetDialog() {
   }
 
   useEffect(() => {
-    if (open) loadCategories()
+    if (open) {
+      loadCategories()
+      setName('')
+      setType('property')
+      setSubtype('')
+      setCurrency('BRL')
+      setValuation('')
+      setPurchasePrice('')
+      setAcquisitionDate('')
+      setLocation('')
+      setNotes('')
+      setCategoryId('none')
+      setFieldErrors({})
+    }
   }, [open])
+
   useRealtime('asset_categories', loadCategories, open)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
+    setFieldErrors({})
     try {
       await createAsset({
         user: user.id,
@@ -62,16 +86,20 @@ export function AssetDialog() {
         currency,
         current_valuation: Number(valuation),
         purchase_price: purchasePrice ? Number(purchasePrice) : null,
+        acquisition_date: acquisitionDate || null,
+        location,
+        notes,
         category: categoryId === 'none' ? null : categoryId,
       })
       setOpen(false)
-      setName('')
-      setSubtype('')
-      setValuation('')
-      setPurchasePrice('')
-      setCategoryId('none')
+      toast({ title: 'Sucesso', description: 'Ativo criado com sucesso.' })
     } catch (err) {
-      console.error(err)
+      setFieldErrors(extractFieldErrors(err))
+      toast({
+        title: 'Erro',
+        description: 'Falha ao criar ativo. Verifique os campos.',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -83,113 +111,161 @@ export function AssetDialog() {
           Adicionar Ativo
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[500px] p-0">
+        <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle>Novo Ativo</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label>Nome</Label>
-            <Input
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Apartamento Centro"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+        <ScrollArea className="max-h-[70vh] px-6">
+          <form id="create-asset-form" onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Tipo</Label>
-              <Select value={type} onValueChange={setType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="property">Imóvel</SelectItem>
-                  <SelectItem value="vehicle">Veículo</SelectItem>
-                  <SelectItem value="investment">Investimento BR</SelectItem>
-                  <SelectItem value="international">Internacional</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Moeda</Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="BRL">BRL</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
-                  <SelectItem value="EUR">EUR</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Subtipo (Opcional)</Label>
-              <Input
-                value={subtype}
-                onChange={(e) => setSubtype(e.target.value)}
-                placeholder="Ex: Ações"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Valoração Atual</Label>
+              <Label>Nome</Label>
               <Input
                 required
-                type="number"
-                step="0.01"
-                value={valuation}
-                onChange={(e) => setValuation(e.target.value)}
-                placeholder="0.00"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Ex: Apartamento Centro"
+                className={fieldErrors.name ? 'border-red-500' : ''}
+              />
+              {fieldErrors.name && <p className="text-sm text-red-500">{fieldErrors.name}</p>}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tipo</Label>
+                <Select value={type} onValueChange={setType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="property">Imóvel</SelectItem>
+                    <SelectItem value="vehicle">Veículo</SelectItem>
+                    <SelectItem value="investment">Investimento BR</SelectItem>
+                    <SelectItem value="international">Internacional</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Moeda</Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BRL">BRL</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Subtipo (Opcional)</Label>
+                <Input
+                  value={subtype}
+                  onChange={(e) => setSubtype(e.target.value)}
+                  placeholder="Ex: Ações"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Categoria (Opcional)</Label>
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhuma</SelectItem>
+                    {categories.map((cat) => {
+                      const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
+                      return (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          <div className="flex items-center gap-2">
+                            {/* @ts-expect-error */}
+                            <Icon size={14} style={{ color: cat.color }} />
+                            <span>{cat.name}</span>
+                          </div>
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Valoração Atual</Label>
+                <Input
+                  required
+                  type="number"
+                  step="0.01"
+                  value={valuation}
+                  onChange={(e) => setValuation(e.target.value)}
+                  placeholder="0.00"
+                  className={fieldErrors.current_valuation ? 'border-red-500' : ''}
+                />
+                {fieldErrors.current_valuation && (
+                  <p className="text-sm text-red-500">{fieldErrors.current_valuation}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Valor de Compra</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={purchasePrice}
+                  onChange={(e) => setPurchasePrice(e.target.value)}
+                  placeholder="0.00"
+                  className={fieldErrors.purchase_price ? 'border-red-500' : ''}
+                />
+                {fieldErrors.purchase_price && (
+                  <p className="text-sm text-red-500">{fieldErrors.purchase_price}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Data de Aquisição</Label>
+                <Input
+                  type="date"
+                  value={acquisitionDate}
+                  onChange={(e) => setAcquisitionDate(e.target.value)}
+                  className={fieldErrors.acquisition_date ? 'border-red-500' : ''}
+                />
+                {fieldErrors.acquisition_date && (
+                  <p className="text-sm text-red-500">{fieldErrors.acquisition_date}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Localização</Label>
+                <Input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Ex: São Paulo, SP"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Notas</Label>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Informações adicionais..."
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Valor de Compra</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={purchasePrice}
-                onChange={(e) => setPurchasePrice(e.target.value)}
-                placeholder="0.00"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Categoria (Opcional)</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhuma</SelectItem>
-                  {categories.map((cat) => {
-                    const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
-                    return (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        <div className="flex items-center gap-2">
-                          {/* @ts-expect-error */}
-                          <Icon size={14} style={{ color: cat.color }} />
-                          <span>{cat.name}</span>
-                        </div>
-                      </SelectItem>
-                    )
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <Button type="submit" className="w-full mt-4">
+          </form>
+        </ScrollArea>
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t bg-muted/40">
+          <Button variant="outline" type="button" onClick={() => setOpen(false)}>
+            Cancelar
+          </Button>
+          <Button type="submit" form="create-asset-form">
             Salvar Ativo
           </Button>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   )
