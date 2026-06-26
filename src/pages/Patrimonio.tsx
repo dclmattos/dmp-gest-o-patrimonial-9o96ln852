@@ -75,7 +75,7 @@ export default function Patrimonio() {
   useRealtime('asset_types', loadData)
 
   const queryUserId = isAdmin && !selectedClient ? 'skip' : selectedClient || undefined
-  const { assets } = useDashboardData(queryUserId)
+  const { assets, receivables, liabilities } = useDashboardData(queryUserId)
 
   const { currency } = useCurrency()
   const [tab, setTab] = useState('all')
@@ -252,6 +252,8 @@ export default function Patrimonio() {
                   asset={asset}
                   categories={categories}
                   types={types}
+                  receivables={receivables}
+                  liabilities={liabilities}
                   onDelete={handleDeleteAsset}
                 />
               </div>

@@ -17,7 +17,7 @@ import {
   Line,
 } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { ArrowUpRight, ArrowDownRight, Building2, Globe } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight, Building2, Globe, BellRing, Calendar } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import {
   format,
@@ -350,6 +350,37 @@ export default function Index() {
 
     return data
   }, [valuationHistory, filteredAssets, filteredLiabilities, isAllFiltered, currency])
+
+  const { upcomingLiabilities, upcomingReceivables } = useMemo(() => {
+    const now = new Date()
+    const next7Days = new Date()
+    next7Days.setDate(now.getDate() + 7)
+
+    const upcomingL = filteredLiabilities.filter((l) => {
+      if (!l.due_date && !l.monthly_due_day) return false
+      if (l.due_date) {
+        const due = parseISO(l.due_date.substring(0, 10))
+        return due >= now && due <= next7Days
+      }
+      if (l.is_recurring && l.monthly_due_day) {
+        const dueThisMonth = new Date(now.getFullYear(), now.getMonth(), l.monthly_due_day)
+        const dueNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, l.monthly_due_day)
+        return (
+          (dueThisMonth >= now && dueThisMonth <= next7Days) ||
+          (dueNextMonth >= now && dueNextMonth <= next7Days)
+        )
+      }
+      return false
+    })
+
+    const upcomingR = filteredReceivables.filter((r) => {
+      if (!r.expected_date) return false
+      const exp = parseISO(r.expected_date.substring(0, 10))
+      return exp >= now && exp <= next7Days
+    })
+
+    return { upcomingLiabilities: upcomingL, upcomingReceivables: upcomingR }
+  }, [filteredLiabilities, filteredReceivables])
 
   const monthlyVariation = useMemo(() => {
     if (evolutionData.length < 2) return { percentage: 0, isPositive: true }
@@ -722,6 +753,73 @@ export default function Index() {
         </div>
       </div>
 
+      {(upcomingLiabilities.length > 0 || upcomingReceivables.length > 0) && (
+        <Card className="shadow-subtle border border-primary/20 bg-primary/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="font-serif text-lg flex items-center gap-2">
+              <BellRing size={18} className="text-primary" />
+              Alertas da Semana
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {upcomingLiabilities.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-rose-600 mb-2">
+                    Próximas Saídas (7 dias)
+                  </h4>
+                  {upcomingLiabilities.map((l) => (
+                    <div
+                      key={l.id}
+                      className="flex justify-between items-center text-sm p-2 bg-background rounded-md shadow-sm border border-border/50"
+                    >
+                      <span className="font-medium line-clamp-1 flex-1">{l.name}</span>
+                      <div className="flex items-center gap-3 shrink-0 ml-2 text-rose-600">
+                        <span>
+                          {formatCurrency(l.monthly_installment || l.remaining_balance || 0, 'BRL')}
+                        </span>
+                        <span className="flex items-center text-muted-foreground text-xs">
+                          <Calendar size={12} className="mr-1" />
+                          {l.monthly_due_day
+                            ? `Dia ${l.monthly_due_day}`
+                            : l.due_date
+                              ? format(parseISO(l.due_date.substring(0, 10)), 'dd/MM')
+                              : ''}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {upcomingReceivables.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-emerald-600 mb-2">
+                    Próximas Entradas (7 dias)
+                  </h4>
+                  {upcomingReceivables.map((r) => (
+                    <div
+                      key={r.id}
+                      className="flex justify-between items-center text-sm p-2 bg-background rounded-md shadow-sm border border-border/50"
+                    >
+                      <span className="font-medium line-clamp-1 flex-1">{r.source}</span>
+                      <div className="flex items-center gap-3 shrink-0 ml-2 text-emerald-600">
+                        <span>{formatCurrency(r.amount, 'BRL')}</span>
+                        <span className="flex items-center text-muted-foreground text-xs">
+                          <Calendar size={12} className="mr-1" />
+                          {r.expected_date
+                            ? format(parseISO(r.expected_date.substring(0, 10)), 'dd/MM')
+                            : ''}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="shadow-subtle border-none">
         <CardHeader>
           <CardTitle className="font-serif text-xl">Projeção Mensal de Fluxo (6 Meses)</CardTitle>
@@ -852,6 +950,9 @@ export default function Index() {
               key={asset.id}
               asset={asset}
               categories={categories}
+              types={assetTypes}
+              receivables={receivables}
+              liabilities={liabilities}
               onDelete={handleDeleteAsset}
             />
           ))}

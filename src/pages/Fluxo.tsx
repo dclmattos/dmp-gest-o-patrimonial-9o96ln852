@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getReceivables } from '@/services/receivables'
 import { getLiabilities } from '@/services/liabilities'
+import { getAssets } from '@/services/assets'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency, useCurrency, convertValue } from '@/hooks/use-currency'
 import { ArrowDownRight, ArrowUpRight, Calendar as CalendarIcon, Clock } from 'lucide-react'
@@ -47,8 +48,10 @@ export default function Fluxo() {
   const { user } = useAuth()
   const [receivables, setReceivables] = useState<any[]>([])
   const [liabilities, setLiabilities] = useState<any[]>([])
+  const [assets, setAssets] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
   const [selectedClient, setSelectedClient] = useState<string>('all')
+  const [selectedAsset, setSelectedAsset] = useState<string>('all')
   const { currency } = useCurrency()
   const { toast } = useToast()
   const [itemToDelete, setItemToDelete] = useState<{
@@ -73,6 +76,7 @@ export default function Fluxo() {
     const filterUserId = selectedClient !== 'all' ? selectedClient : undefined
     getReceivables(filterUserId).then(setReceivables)
     getLiabilities(filterUserId).then(setLiabilities)
+    getAssets(filterUserId).then(setAssets)
   }
 
   useEffect(() => {
@@ -81,6 +85,7 @@ export default function Fluxo() {
 
   useRealtime('receivables', loadData)
   useRealtime('liabilities', loadData)
+  useRealtime('assets', loadData)
 
   const handleDelete = async () => {
     if (!itemToDelete) return
@@ -103,6 +108,11 @@ export default function Fluxo() {
     }
   }
 
+  const filteredReceivables =
+    selectedAsset === 'all' ? receivables : receivables.filter((r) => r.asset === selectedAsset)
+  const filteredLiabilities =
+    selectedAsset === 'all' ? liabilities : liabilities.filter((l) => l.asset === selectedAsset)
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
@@ -112,24 +122,42 @@ export default function Fluxo() {
             Gerenciamento previsível de entradas e saídas.
           </p>
         </div>
-        {user?.role === 'admin' && (
-          <div className="w-full sm:w-64 space-y-2">
-            <Label>Cliente</Label>
-            <Select value={selectedClient} onValueChange={setSelectedClient}>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          {user?.role === 'admin' && (
+            <div className="w-full sm:w-56 space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Cliente</Label>
+              <Select value={selectedClient} onValueChange={setSelectedClient}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Todos os Clientes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Clientes</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name || u.email || `Cliente ${u.id}`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="w-full sm:w-56 space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Filtrar por Ativo</Label>
+            <Select value={selectedAsset} onValueChange={setSelectedAsset}>
               <SelectTrigger className="bg-background">
-                <SelectValue placeholder="Selecione um cliente" />
+                <SelectValue placeholder="Todos os Ativos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os Clientes</SelectItem>
-                {users.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name || u.email || `Cliente ${u.id}`} {u.role === 'admin' ? '(Admin)' : ''}
+                <SelectItem value="all">Todos os Ativos</SelectItem>
+                {assets.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    {a.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-        )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -147,13 +175,18 @@ export default function Fluxo() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border/40">
-              {receivables.map((r) => (
+              {filteredReceivables.map((r) => (
                 <div
                   key={r.id}
                   className="group p-5 flex items-center justify-between hover:bg-muted/30 transition-colors"
                 >
                   <div>
                     <p className="font-medium text-slate-800 dark:text-slate-200">{r.source}</p>
+                    {r.asset && assets.find((a) => a.id === r.asset) && (
+                      <p className="text-xs text-emerald-600 mt-0.5">
+                        Ativo: {assets.find((a) => a.id === r.asset)?.name}
+                      </p>
+                    )}
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1.5">
                       {r.expected_date && (
                         <div className="flex items-center gap-1">
@@ -185,9 +218,9 @@ export default function Fluxo() {
                   </div>
                 </div>
               ))}
-              {receivables.length === 0 && (
+              {filteredReceivables.length === 0 && (
                 <div className="p-8 text-center text-muted-foreground">
-                  Nenhum fluxo programado.
+                  Nenhum fluxo programado para o filtro atual.
                 </div>
               )}
             </div>
@@ -208,13 +241,18 @@ export default function Fluxo() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-border/40">
-              {liabilities.map((l) => (
+              {filteredLiabilities.map((l) => (
                 <div
                   key={l.id}
                   className="group p-5 flex items-center justify-between hover:bg-muted/30 transition-colors"
                 >
                   <div>
                     <p className="font-medium text-slate-800 dark:text-slate-200">{l.name}</p>
+                    {l.asset && assets.find((a) => a.id === l.asset) && (
+                      <p className="text-xs text-rose-600 mt-0.5">
+                        Ativo: {assets.find((a) => a.id === l.asset)?.name}
+                      </p>
+                    )}
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1.5">
                       {l.is_recurring && l.monthly_due_day ? (
                         <div className="flex items-center gap-1">
@@ -255,17 +293,19 @@ export default function Fluxo() {
                     <p className="text-rose-600 font-medium text-lg">
                       -
                       {formatCurrency(
-                        convertValue(l.monthly_installment, 'BRL', currency),
+                        convertValue(l.monthly_installment || l.remaining_balance, 'BRL', currency),
                         currency,
                       )}
-                      <span className="text-sm text-muted-foreground font-normal">/mês</span>
+                      {l.is_recurring && (
+                        <span className="text-sm text-muted-foreground font-normal">/mês</span>
+                      )}
                     </p>
                   </div>
                 </div>
               ))}
-              {liabilities.length === 0 && (
+              {filteredLiabilities.length === 0 && (
                 <div className="p-8 text-center text-muted-foreground">
-                  Nenhuma obrigação cadastrada.
+                  Nenhuma obrigação cadastrada para o filtro atual.
                 </div>
               )}
             </div>
@@ -273,7 +313,11 @@ export default function Fluxo() {
         </Card>
       </div>
 
-      <MonthlyProjection receivables={receivables} liabilities={liabilities} currency={currency} />
+      <MonthlyProjection
+        receivables={filteredReceivables}
+        liabilities={filteredLiabilities}
+        currency={currency}
+      />
 
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <AlertDialogContent>

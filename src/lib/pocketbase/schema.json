@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-26T18:28:24.398Z",
+  "generatedAt": "2026-06-26T18:33:37.417Z",
   "collections": [
     {
       "name": "users",
@@ -446,9 +446,19 @@
           "type": "number",
           "required": false,
           "system": false
+        },
+        {
+          "name": "parent_id",
+          "type": "relation",
+          "required": false,
+          "system": false,
+          "collectionRef": "asset_categories"
         }
       ],
-      "indexes": ["CREATE INDEX idx_asset_categories_user ON asset_categories (user)"]
+      "indexes": [
+        "CREATE INDEX idx_asset_categories_user ON asset_categories (user)",
+        "CREATE INDEX `idx_asset_categories_parent` ON `asset_categories` (parent_id)"
+      ]
     },
     {
       "name": "asset_types",

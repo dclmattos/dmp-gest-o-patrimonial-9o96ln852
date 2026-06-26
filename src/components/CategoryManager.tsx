@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -16,13 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Trash2, Tags, Plus, ChevronUp, ChevronDown } from 'lucide-react'
+import { Trash2, Tags, Plus, RefreshCw, GripVertical } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import {
   createAssetCategory,
   deleteAssetCategory,
   getAssetCategories,
+  updateAssetCategory,
 } from '@/services/asset_categories'
 import { useRealtime } from '@/hooks/use-realtime'
 
@@ -67,6 +68,10 @@ export function CategoryManager() {
   const [color, setColor] = useState(COLORS[0])
   const [icon, setIcon] = useState(ICONS_LIST[0])
   const [goalValue, setGoalValue] = useState('')
+  const [parentId, setParentId] = useState<string>('none')
+
+  const dragItem = useRef<number | null>(null)
+  const dragOverItem = useRef<number | null>(null)
 
   const loadCategories = async () => {
     try {
@@ -96,61 +101,15 @@ export function CategoryManager() {
         icon,
         goal_value: !isNaN(goal) && goal > 0 ? goal : 0,
         sort_order: maxSortOrder + 1,
+        parent_id: parentId === 'none' ? null : parentId,
       })
       setName('')
       setColor(COLORS[0])
       setIcon(ICONS_LIST[0])
       setGoalValue('')
+      setParentId('none')
     } catch (err) {
       console.error(err)
-    }
-  }
-
-  const handleMoveUp = async (index: number) => {
-    if (index === 0) return
-    const current = categories[index]
-    const prev = categories[index - 1]
-
-    const currentSort = current.sort_order ?? index + 1
-    const prevSort = prev.sort_order ?? index
-
-    try {
-      const newCats = [...categories]
-      newCats[index] = { ...current, sort_order: prevSort }
-      newCats[index - 1] = { ...prev, sort_order: currentSort }
-      setCategories(newCats.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)))
-
-      await Promise.all([
-        updateAssetCategory(current.id, { sort_order: prevSort }),
-        updateAssetCategory(prev.id, { sort_order: currentSort }),
-      ])
-    } catch (err) {
-      console.error(err)
-      loadCategories()
-    }
-  }
-
-  const handleMoveDown = async (index: number) => {
-    if (index === categories.length - 1) return
-    const current = categories[index]
-    const next = categories[index + 1]
-
-    const currentSort = current.sort_order ?? index + 1
-    const nextSort = next.sort_order ?? index + 2
-
-    try {
-      const newCats = [...categories]
-      newCats[index] = { ...current, sort_order: nextSort }
-      newCats[index + 1] = { ...next, sort_order: currentSort }
-      setCategories(newCats.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)))
-
-      await Promise.all([
-        updateAssetCategory(current.id, { sort_order: nextSort }),
-        updateAssetCategory(next.id, { sort_order: currentSort }),
-      ])
-    } catch (err) {
-      console.error(err)
-      loadCategories()
     }
   }
 
@@ -168,6 +127,103 @@ export function CategoryManager() {
     }
   }
 
+  const handleSort = async () => {
+    if (dragItem.current === null || dragOverItem.current === null) return
+    if (dragItem.current === dragOverItem.current) return
+
+    const newCats = [...categories]
+    const draggedItemContent = newCats.splice(dragItem.current, 1)[0]
+    newCats.splice(dragOverItem.current, 0, draggedItemContent)
+
+    // Update sort_order locally
+    const updatedCats = newCats.map((c, i) => ({ ...c, sort_order: i + 1 }))
+    setCategories(updatedCats)
+
+    dragItem.current = null
+    dragOverItem.current = null
+
+    // Update in DB
+    try {
+      await Promise.all(
+        updatedCats.map((c) => updateAssetCategory(c.id, { sort_order: c.sort_order })),
+      )
+    } catch (e) {
+      console.error(e)
+      loadCategories()
+    }
+  }
+
+  const handleResetOrder = async () => {
+    const sorted = [...categories].sort((a, b) => a.name.localeCompare(b.name))
+    const updatedCats = sorted.map((c, i) => ({ ...c, sort_order: i + 1 }))
+    setCategories(updatedCats)
+    try {
+      await Promise.all(
+        updatedCats.map((c) => updateAssetCategory(c.id, { sort_order: c.sort_order })),
+      )
+    } catch (e) {
+      console.error(e)
+      loadCategories()
+    }
+  }
+
+  const renderCategory = (cat: any, index: number, depth: number = 0) => {
+    const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
+    const children = categories
+      .filter((c) => c.parent_id === cat.id)
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+
+    return (
+      <div key={cat.id} className="space-y-2">
+        <div
+          draggable
+          onDragStart={(e) => (dragItem.current = categories.findIndex((c) => c.id === cat.id))}
+          onDragEnter={(e) => (dragOverItem.current = categories.findIndex((c) => c.id === cat.id))}
+          onDragEnd={handleSort}
+          onDragOver={(e) => e.preventDefault()}
+          className="flex items-center justify-between p-3 rounded-md border border-border/50 bg-card cursor-move group"
+          style={{ marginLeft: `${depth * 1.5}rem` }}
+        >
+          <div className="flex items-center gap-3">
+            <GripVertical
+              className="text-muted-foreground opacity-50 group-hover:opacity-100"
+              size={16}
+            />
+            <div className="p-2 rounded-full bg-muted shrink-0" style={{ color: cat.color }}>
+              {/* @ts-expect-error */}
+              <Icon size={16} />
+            </div>
+            <span className="font-medium flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+              {cat.name}
+              {cat.goal_value > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  Meta:{' '}
+                  {cat.goal_value.toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                  })}
+                </span>
+              )}
+            </span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => handleDelete(cat.id)}
+          >
+            <Trash2 size={16} />
+          </Button>
+        </div>
+        {children.map((child, i) => renderCategory(child, i, depth + 1))}
+      </div>
+    )
+  }
+
+  const rootCategories = categories
+    .filter((c) => !c.parent_id)
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -176,12 +232,12 @@ export function CategoryManager() {
           className="gap-2 shadow-subtle hover:border-primary/30 transition-all"
         >
           <Tags size={16} />
-          <span className="hidden sm:inline">Gerenciar Categorias</span>
+          <span className="hidden sm:inline">Categorias</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Gerenciar Categorias</DialogTitle>
+          <DialogTitle>Gerenciar Categorias e Setores</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
@@ -192,13 +248,33 @@ export function CategoryManager() {
             <div className="grid grid-cols-1 gap-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Nome da Categoria</Label>
+                  <Label>Nome</Label>
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Ex: Renda Fixa"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Setor / Categoria Pai</Label>
+                  <Select value={parentId} onValueChange={setParentId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Nenhum (Raiz)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum (Raiz)</SelectItem>
+                      {categories
+                        .filter((c) => !c.parent_id)
+                        .map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Meta de Valor (Opcional)</Label>
                   <Input
@@ -210,24 +286,6 @@ export function CategoryManager() {
                     placeholder="Ex: 500000"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Cor</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {COLORS.slice(0, 10).map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${color === c ? 'border-foreground' : 'border-transparent'}`}
-                        style={{ backgroundColor: c }}
-                        onClick={() => setColor(c)}
-                      />
-                    ))}
-                  </div>
-                </div>
-
                 <div className="space-y-2">
                   <Label>Ícone</Label>
                   <Select value={icon} onValueChange={setIcon}>
@@ -251,77 +309,51 @@ export function CategoryManager() {
                   </Select>
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>Cor</Label>
+                <div className="flex flex-wrap gap-2">
+                  {COLORS.slice(0, 10).map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`w-6 h-6 rounded-full border-2 transition-transform hover:scale-110 ${color === c ? 'border-foreground' : 'border-transparent'}`}
+                      style={{ backgroundColor: c }}
+                      onClick={() => setColor(c)}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
             <Button type="submit" className="w-full gap-2" disabled={!name.trim()}>
               <Plus size={16} />
-              Adicionar Categoria
+              Adicionar
             </Button>
           </form>
 
           <div className="space-y-3">
-            <Label className="text-muted-foreground">Suas Categorias</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-muted-foreground">
+                Suas Categorias (Arraste para ordenar)
+              </Label>
+              {categories.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleResetOrder}
+                  className="h-8 px-2 text-xs"
+                >
+                  <RefreshCw size={14} className="mr-1" />
+                  Resetar Ordem
+                </Button>
+              )}
+            </div>
             {categories.length === 0 ? (
               <div className="text-center py-6 text-sm text-muted-foreground bg-muted/20 rounded-md border border-dashed">
                 Nenhuma categoria criada ainda.
-                <br />
-                Adicione a sua primeira categoria acima!
               </div>
             ) : (
-              <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2">
-                {categories.map((cat, index) => {
-                  const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
-                  return (
-                    <div
-                      key={cat.id}
-                      className="flex items-center justify-between p-3 rounded-md border border-border/50 bg-card"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex flex-col">
-                          <button
-                            type="button"
-                            className="text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
-                            disabled={index === 0}
-                            onClick={() => handleMoveUp(index)}
-                          >
-                            <ChevronUp size={16} />
-                          </button>
-                          <button
-                            type="button"
-                            className="text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
-                            disabled={index === categories.length - 1}
-                            onClick={() => handleMoveDown(index)}
-                          >
-                            <ChevronDown size={16} />
-                          </button>
-                        </div>
-                        <div className="p-2 rounded-full bg-muted" style={{ color: cat.color }}>
-                          {/* @ts-expect-error */}
-                          <Icon size={16} />
-                        </div>
-                        <span className="font-medium">
-                          {cat.name}
-                          {cat.goal_value > 0 && (
-                            <span className="ml-2 text-xs text-muted-foreground block sm:inline">
-                              Meta:{' '}
-                              {cat.goal_value.toLocaleString('pt-BR', {
-                                style: 'currency',
-                                currency: 'BRL',
-                              })}
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDelete(cat.id)}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  )
-                })}
+              <div className="space-y-2 max-h-[250px] overflow-y-auto pr-2 pb-2">
+                {rootCategories.map((cat, i) => renderCategory(cat, i))}
               </div>
             )}
           </div>

@@ -1,5 +1,15 @@
 import { useEffect, useState, useMemo } from 'react'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts'
+import {
+  AreaChart,
+  Area,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { formatCurrency, useCurrency, convertValue } from '@/hooks/use-currency'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
@@ -19,7 +29,7 @@ import { getAssetCategories } from '@/services/asset_categories'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useAuth } from '@/hooks/use-auth'
 import { getUsers } from '@/services/users'
-import { Check, ChevronsUpDown } from 'lucide-react'
+import { Check, ChevronsUpDown, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,12 +45,17 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 export default function Evolucao() {
   const { user } = useAuth()
   const [users, setUsers] = useState<any[]>([])
-  const [selectedClient, setSelectedClient] = useState<string | null>(null)
+  const [selectedClients, setSelectedClients] = useState<string[]>([])
   const [openClient, setOpenClient] = useState(false)
 
-  const actualClient = selectedClient ?? user?.id ?? 'all'
+  const effectiveClients =
+    selectedClients.length > 0
+      ? selectedClients
+      : user?.role === 'admin'
+        ? ['all']
+        : [user?.id || '']
 
-  const { assets, valuationHistory } = useDashboardData(actualClient)
+  const { assets, valuationHistory } = useDashboardData('all')
   const { currency } = useCurrency()
 
   const [categories, setCategories] = useState<any[]>([])
@@ -77,27 +92,26 @@ export default function Evolucao() {
   }, [])
   useRealtime('asset_categories', loadCategories)
 
-  const filteredAssets = useMemo(() => {
-    return assets.filter((a) => {
-      const matchType = selectedType === 'all' || a.type === selectedType
-      const matchCategory = selectedCategory === 'all' || a.category === selectedCategory
-      return matchType && matchCategory
+  const toggleClient = (clientId: string) => {
+    if (clientId === 'all') {
+      setSelectedClients(['all'])
+      return
+    }
+    setSelectedClients((prev) => {
+      const withoutAll = prev.filter((p) => p !== 'all')
+      if (withoutAll.includes(clientId)) {
+        const next = withoutAll.filter((p) => p !== clientId)
+        return next.length === 0 ? ['all'] : next
+      } else {
+        return [...withoutAll, clientId]
+      }
     })
-  }, [assets, selectedType, selectedCategory])
+  }
 
   const evolutionData = useMemo(() => {
-    if (!filteredAssets.length) return []
-
-    const assetCurrencyMap = new Map(filteredAssets.map((a) => [a.id, a.currency]))
-    const filteredAssetsIds = new Set(filteredAssets.map((a) => a.id))
-
-    const relevantHistory = (valuationHistory || []).filter(
-      (vh) => filteredAssetsIds.has(vh.asset) && vh.date,
-    )
-    const allEvents = [...relevantHistory].sort((a, b) => a.date.localeCompare(b.date))
+    const isMulti = !effectiveClients.includes('all') && effectiveClients.length > 1
 
     const currentMonthStr = new Date().toISOString().substring(0, 7)
-
     const firstMonth = startDate.substring(0, 7) || currentMonthStr
     const endMonthStr = endDate.substring(0, 7) || currentMonthStr
 
@@ -118,93 +132,144 @@ export default function Evolucao() {
       }
     }
 
-    const eventsByAsset = new Map<string, Array<{ month: string; value: number }>>()
-    allEvents.forEach((e) => {
-      const m = e.date.substring(0, 7)
-      if (!eventsByAsset.has(e.asset)) eventsByAsset.set(e.asset, [])
-      eventsByAsset.get(e.asset)!.push({ month: m, value: e.value })
-    })
-
-    const uniquePointsByAsset = new Map<string, Array<{ month: string; value: number }>>()
-    filteredAssets.forEach((asset) => {
-      const points = []
-      const startMonth = asset.acquisition_date
-        ? asset.acquisition_date.substring(0, 7)
-        : asset.created
-          ? asset.created.substring(0, 7)
-          : null
-      const startPrice = asset.purchase_price ?? asset.current_valuation ?? 0
-
-      if (startMonth) {
-        points.push({ month: startMonth, value: startPrice })
-      }
-
-      const events = eventsByAsset.get(asset.id) || []
-      events.forEach((e) => {
-        points.push({ month: e.month, value: e.value })
+    const calculatePointsForAssets = (filteredSet: any[]) => {
+      if (!filteredSet.length) return allMonths.map((m) => ({ date: m, value: 0 }))
+      const assetCurrencyMap = new Map(filteredSet.map((a) => [a.id, a.currency]))
+      const filteredAssetsIds = new Set(filteredSet.map((a) => a.id))
+      const relevantHistory = (valuationHistory || []).filter(
+        (vh) => filteredAssetsIds.has(vh.asset) && vh.date,
+      )
+      const allEvents = [...relevantHistory].sort((a, b) => a.date.localeCompare(b.date))
+      const eventsByAsset = new Map<string, Array<{ month: string; value: number }>>()
+      allEvents.forEach((e) => {
+        const m = e.date.substring(0, 7)
+        if (!eventsByAsset.has(e.asset)) eventsByAsset.set(e.asset, [])
+        eventsByAsset.get(e.asset)!.push({ month: m, value: e.value })
       })
 
-      points.push({ month: currentMonthStr, value: asset.current_valuation || 0 })
-      points.sort((a, b) => a.month.localeCompare(b.month))
+      const uniquePointsByAsset = new Map<string, Array<{ month: string; value: number }>>()
+      filteredSet.forEach((asset) => {
+        const points = []
+        const startMonth = asset.acquisition_date
+          ? asset.acquisition_date.substring(0, 7)
+          : asset.created
+            ? asset.created.substring(0, 7)
+            : null
+        const startPrice = asset.purchase_price ?? asset.current_valuation ?? 0
 
-      const uniquePoints: Array<{ month: string; value: number }> = []
-      for (const p of points) {
-        const last = uniquePoints[uniquePoints.length - 1]
-        if (last && last.month === p.month) {
-          last.value = p.value
-        } else {
-          uniquePoints.push({ ...p })
+        if (startMonth) points.push({ month: startMonth, value: startPrice })
+        const events = eventsByAsset.get(asset.id) || []
+        events.forEach((e) => points.push({ month: e.month, value: e.value }))
+        points.push({ month: currentMonthStr, value: asset.current_valuation || 0 })
+        points.sort((a, b) => a.month.localeCompare(b.month))
+
+        const uniquePoints: Array<{ month: string; value: number }> = []
+        for (const p of points) {
+          const last = uniquePoints[uniquePoints.length - 1]
+          if (last && last.month === p.month) last.value = p.value
+          else uniquePoints.push({ ...p })
         }
-      }
-      uniquePointsByAsset.set(asset.id, uniquePoints)
-    })
+        uniquePointsByAsset.set(asset.id, uniquePoints)
+      })
 
-    const data = allMonths.map((m) => {
-      let totalValue = 0
-      filteredAssets.forEach((asset) => {
-        const uniquePoints = uniquePointsByAsset.get(asset.id) || []
-        let latestValue = 0
-
-        if (uniquePoints.length === 0 || m < uniquePoints[0].month) {
-          latestValue = 0
-        } else if (m >= uniquePoints[uniquePoints.length - 1].month) {
-          latestValue = uniquePoints[uniquePoints.length - 1].value
-        } else {
-          for (let i = 0; i < uniquePoints.length - 1; i++) {
-            if (uniquePoints[i].month <= m && uniquePoints[i + 1].month > m) {
-              const p1 = uniquePoints[i]
-              const p2 = uniquePoints[i + 1]
-              const [y1, mo1] = p1.month.split('-').map(Number)
-              const [y2, mo2] = p2.month.split('-').map(Number)
-              const diffMonths = (y2 - y1) * 12 + (mo2 - mo1)
-              const [my, mmo] = m.split('-').map(Number)
-              const passedMonths = (my - y1) * 12 + (mmo - mo1)
-              latestValue = p1.value + (p2.value - p1.value) * (passedMonths / diffMonths)
-              break
+      return allMonths.map((m) => {
+        let totalValue = 0
+        filteredSet.forEach((asset) => {
+          const uniquePoints = uniquePointsByAsset.get(asset.id) || []
+          let latestValue = 0
+          if (uniquePoints.length === 0 || m < uniquePoints[0].month) latestValue = 0
+          else if (m >= uniquePoints[uniquePoints.length - 1].month)
+            latestValue = uniquePoints[uniquePoints.length - 1].value
+          else {
+            for (let i = 0; i < uniquePoints.length - 1; i++) {
+              if (uniquePoints[i].month <= m && uniquePoints[i + 1].month > m) {
+                const p1 = uniquePoints[i]
+                const p2 = uniquePoints[i + 1]
+                const [y1, mo1] = p1.month.split('-').map(Number)
+                const [y2, mo2] = p2.month.split('-').map(Number)
+                const diffMonths = (y2 - y1) * 12 + (mo2 - mo1)
+                const [my, mmo] = m.split('-').map(Number)
+                const passedMonths = (my - y1) * 12 + (mmo - mo1)
+                latestValue = p1.value + (p2.value - p1.value) * (passedMonths / diffMonths)
+                break
+              }
             }
           }
-        }
-
-        totalValue += convertValue(latestValue, assetCurrencyMap.get(asset.id) || 'BRL', currency)
+          totalValue += convertValue(latestValue, assetCurrencyMap.get(asset.id) || 'BRL', currency)
+        })
+        return { date: m, value: totalValue }
       })
-      return { date: m, value: totalValue }
-    })
+    }
 
-    return data
-  }, [valuationHistory, filteredAssets, currency, startDate, endDate])
+    if (!isMulti) {
+      const filtered = assets.filter((a) => {
+        const matchType = selectedType === 'all' || a.type === selectedType
+        const matchCategory = selectedCategory === 'all' || a.category === selectedCategory
+        const matchUser = effectiveClients.includes('all') || effectiveClients.includes(a.user)
+        return matchType && matchCategory && matchUser
+      })
+      return calculatePointsForAssets(filtered)
+    } else {
+      const dataPerClient = effectiveClients.map((cId) => {
+        const filtered = assets.filter((a) => {
+          const matchType = selectedType === 'all' || a.type === selectedType
+          const matchCategory = selectedCategory === 'all' || a.category === selectedCategory
+          return matchType && matchCategory && a.user === cId
+        })
+        return { cId, data: calculatePointsForAssets(filtered) }
+      })
+
+      return allMonths.map((m) => {
+        const row: any = { date: m }
+        dataPerClient.forEach(({ cId, data }) => {
+          const point = data.find((d) => d.date === m)
+          row[`client_${cId}`] = point ? point.value : 0
+        })
+        return row
+      })
+    }
+  }, [
+    valuationHistory,
+    assets,
+    currency,
+    startDate,
+    endDate,
+    selectedType,
+    selectedCategory,
+    effectiveClients,
+  ])
+
+  const handleExportPDF = () => {
+    window.print()
+  }
+
+  const isMulti = !effectiveClients.includes('all') && effectiveClients.length > 1
 
   return (
-    <div className="space-y-8 animate-fade-in-up">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
+    <div className="space-y-8 animate-fade-in-up print:m-0 print:p-0 print:bg-white">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 print:hidden">
         <div>
           <h2 className="text-3xl font-serif tracking-tight">Evolução do Patrimônio</h2>
           <p className="text-muted-foreground mt-1">
             Analise a curva de crescimento do seu portfólio aplicando filtros customizados.
           </p>
         </div>
+        <Button variant="outline" onClick={handleExportPDF} className="gap-2">
+          <Download size={16} />
+          Exportar Relatório PDF
+        </Button>
       </div>
 
-      <Card className="shadow-subtle border-none bg-slate-50 dark:bg-slate-900">
+      <div className="hidden print:block mb-8">
+        <h1 className="text-4xl font-serif text-slate-900">Relatório de Evolução Patrimonial</h1>
+        <p className="text-slate-500">Gerado em {new Date().toLocaleDateString('pt-BR')}</p>
+        <p className="text-slate-500 mt-2">
+          Período: {new Date(startDate).toLocaleDateString()} a{' '}
+          {new Date(endDate).toLocaleDateString()}
+        </p>
+      </div>
+
+      <Card className="shadow-subtle border-none bg-slate-50 dark:bg-slate-900 print:shadow-none print:border print:bg-white print:break-inside-avoid">
         <CardContent className="p-6">
           <div
             className={cn(
@@ -213,8 +278,8 @@ export default function Evolucao() {
             )}
           >
             {user?.role === 'admin' && (
-              <div className="space-y-2">
-                <Label>Cliente</Label>
+              <div className="space-y-2 print:hidden">
+                <Label>Clientes (Comparação)</Label>
                 <Popover open={openClient} onOpenChange={setOpenClient}>
                   <PopoverTrigger asChild>
                     <Button
@@ -224,11 +289,9 @@ export default function Evolucao() {
                       className="w-full justify-between bg-background font-normal border-input"
                     >
                       <span className="truncate">
-                        {actualClient === 'all'
+                        {effectiveClients.includes('all')
                           ? 'Todos os Clientes'
-                          : users.find((u) => u.id === actualClient)?.name ||
-                            users.find((u) => u.id === actualClient)?.email ||
-                            'Cliente não encontrado'}
+                          : `${effectiveClients.length} selecionado(s)`}
                       </span>
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
@@ -246,33 +309,27 @@ export default function Evolucao() {
                           <CommandItem
                             value="all"
                             keywords={['todos', 'all']}
-                            onSelect={() => {
-                              setSelectedClient('all')
-                              setOpenClient(false)
-                            }}
+                            onSelect={() => toggleClient('all')}
                           >
                             <Check
                               className={cn(
                                 'mr-2 h-4 w-4',
-                                actualClient === 'all' ? 'opacity-100' : 'opacity-0',
+                                effectiveClients.includes('all') ? 'opacity-100' : 'opacity-0',
                               )}
                             />
-                            Todos os Clientes
+                            Todos os Clientes (Consolidado)
                           </CommandItem>
                           {users.map((u) => (
                             <CommandItem
                               key={u.id}
                               value={u.id}
                               keywords={[u.name || '', u.email || '']}
-                              onSelect={() => {
-                                setSelectedClient(u.id)
-                                setOpenClient(false)
-                              }}
+                              onSelect={() => toggleClient(u.id)}
                             >
                               <Check
                                 className={cn(
                                   'mr-2 h-4 w-4',
-                                  actualClient === u.id ? 'opacity-100' : 'opacity-0',
+                                  effectiveClients.includes(u.id) ? 'opacity-100' : 'opacity-0',
                                 )}
                               />
                               {u.name || u.email}
@@ -316,7 +373,7 @@ export default function Evolucao() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 print:hidden">
               <Label>Data de Início</Label>
               <Input
                 type="date"
@@ -325,7 +382,7 @@ export default function Evolucao() {
                 className="bg-background"
               />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 print:hidden">
               <Label>Data de Fim</Label>
               <Input
                 type="date"
@@ -338,11 +395,12 @@ export default function Evolucao() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-elevation border border-border/50">
+      <Card className="shadow-elevation border border-border/50 print:shadow-none print:border-0 print:break-inside-avoid">
         <CardHeader className="pb-8">
           <CardTitle className="font-serif text-2xl">Gráfico de Crescimento Histórico</CardTitle>
-          <CardDescription>
-            Visão consolidada dos ativos filtrados para o período selecionado.
+          <CardDescription className="print:hidden">
+            Visão {isMulti ? 'comparativa' : 'consolidada'} dos ativos filtrados para o período
+            selecionado.
           </CardDescription>
         </CardHeader>
         <CardContent className="h-[500px]">
@@ -352,73 +410,142 @@ export default function Evolucao() {
               className="w-full h-full"
             >
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={evolutionData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="date"
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                    dy={10}
-                    tickFormatter={(val) => {
-                      try {
-                        return format(parseISO(`${val}-01`), 'MMM yy', { locale: ptBR })
-                      } catch {
-                        return val
+                {isMulti ? (
+                  <LineChart
+                    data={evolutionData}
+                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                  >
+                    <XAxis
+                      dataKey="date"
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      dy={10}
+                      tickFormatter={(val) => {
+                        try {
+                          return format(parseISO(`${val}-01`), 'MMM yy', { locale: ptBR })
+                        } catch {
+                          return val
+                        }
+                      }}
+                    />
+                    <YAxis
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(val) =>
+                        new Intl.NumberFormat('pt-BR', {
+                          style: 'currency',
+                          currency,
+                          notation: 'compact',
+                          compactDisplay: 'short',
+                        }).format(val)
                       }
-                    }}
-                  />
-                  <YAxis
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(val) =>
-                      new Intl.NumberFormat('pt-BR', {
-                        style: 'currency',
-                        currency,
-                        notation: 'compact',
-                        compactDisplay: 'short',
-                        maximumFractionDigits: 1,
-                      }).format(val)
-                    }
-                  />
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke="hsl(var(--border))"
-                  />
-                  <ChartTooltip
-                    content={
-                      <ChartTooltipContent
-                        formatter={(v: number) => formatCurrency(v, currency)}
-                        labelFormatter={(label) => {
-                          try {
-                            return format(parseISO(`${label}-01`), 'MMMM yyyy', {
-                              locale: ptBR,
-                            })
-                          } catch {
-                            return label
-                          }
-                        }}
+                    />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="hsl(var(--border))"
+                    />
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          formatter={(v: number) => formatCurrency(v, currency)}
+                        />
+                      }
+                    />
+                    <Legend
+                      wrapperStyle={{ paddingTop: '20px' }}
+                      formatter={(val) => {
+                        const id = val.replace('client_', '')
+                        const u = users.find((u) => u.id === id)
+                        return u?.name || u?.email || 'Cliente'
+                      }}
+                    />
+                    {effectiveClients.map((cId, i) => (
+                      <Line
+                        key={cId}
+                        type="monotone"
+                        dataKey={`client_${cId}`}
+                        name={`client_${cId}`}
+                        stroke={`hsl(var(--chart-${(i % 5) + 1}))`}
+                        strokeWidth={3}
+                        dot={{ r: 3 }}
+                        activeDot={{ r: 6 }}
                       />
-                    }
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#colorVal)"
-                  />
-                </AreaChart>
+                    ))}
+                  </LineChart>
+                ) : (
+                  <AreaChart
+                    data={evolutionData}
+                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      dataKey="date"
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      dy={10}
+                      tickFormatter={(val) => {
+                        try {
+                          return format(parseISO(`${val}-01`), 'MMM yy', { locale: ptBR })
+                        } catch {
+                          return val
+                        }
+                      }}
+                    />
+                    <YAxis
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={12}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(val) =>
+                        new Intl.NumberFormat('pt-BR', {
+                          style: 'currency',
+                          currency,
+                          notation: 'compact',
+                          compactDisplay: 'short',
+                        }).format(val)
+                      }
+                    />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="hsl(var(--border))"
+                    />
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          formatter={(v: number) => formatCurrency(v, currency)}
+                          labelFormatter={(label) => {
+                            try {
+                              return format(parseISO(`${label}-01`), 'MMMM yyyy', { locale: ptBR })
+                            } catch {
+                              return label
+                            }
+                          }}
+                        />
+                      }
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorVal)"
+                    />
+                  </AreaChart>
+                )}
               </ResponsiveContainer>
             </ChartContainer>
           ) : (

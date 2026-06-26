@@ -28,10 +28,26 @@ export function AssetCard({
   asset,
   categories = [],
   types = [],
+  receivables = [],
+  liabilities = [],
   onDelete,
   onUpdate,
 }: AssetCardProps) {
   const { currency } = useCurrency()
+
+  const assetReceivables = receivables.filter((r) => r.asset === asset.id)
+  const assetLiabilities = liabilities.filter((l) => l.asset === asset.id)
+
+  const totalReceivables = assetReceivables.reduce(
+    (acc, r) => acc + convertValue(r.amount, 'BRL', currency),
+    0,
+  )
+  const totalLiabilities = assetLiabilities.reduce(
+    (acc, l) =>
+      acc + convertValue(l.remaining_balance || l.monthly_installment || 0, 'BRL', currency),
+    0,
+  )
+  const netProfitability = totalReceivables - totalLiabilities
 
   const assetType = types?.find((t) => t.id === asset.type_ref)
   const IconComponent =
@@ -137,6 +153,17 @@ export function AssetCard({
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Localização</span>
               <span className="font-medium truncate max-w-[150px]">{asset.location}</span>
+            </div>
+          )}
+          {(assetReceivables.length > 0 || assetLiabilities.length > 0) && (
+            <div className="flex items-center justify-between text-xs pt-2 border-t border-border/40">
+              <span className="text-muted-foreground">Rentabilidade Líquida</span>
+              <span
+                className={`font-medium ${netProfitability >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}
+              >
+                {netProfitability >= 0 ? '+' : ''}
+                {formatCurrency(netProfitability, currency)}
+              </span>
             </div>
           )}
         </div>
