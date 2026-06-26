@@ -4,7 +4,9 @@ import { getSelectedUserId } from '@/stores/selectedUser'
 export const getAssetTypes = async (userId?: string) => {
   const effectiveId = userId || pb.authStore.record?.id
   const filter = effectiveId ? `user = "${effectiveId}" || is_system = true` : `is_system = true`
-  return await pb.collection('asset_types').getFullList({ filter, sort: 'name' })
+  return await pb
+    .collection('asset_types')
+    .getFullList({ filter, sort: '-is_system,sort_order,name' })
 }
 
 export const createAssetType = async (data: any) => {

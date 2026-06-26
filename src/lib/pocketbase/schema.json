@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-26T16:50:23.168Z",
+  "generatedAt": "2026-06-26T16:54:22.228Z",
   "collections": [
     {
       "name": "users",
@@ -479,6 +479,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "sort_order",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_asset_types_user ON asset_types (user)"]

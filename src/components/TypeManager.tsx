@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Trash2, Plus, Settings2 } from 'lucide-react'
+import { Trash2, Plus, Settings2, ChevronUp, ChevronDown } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { createAssetType, deleteAssetType, getAssetTypes } from '@/services/asset_types'
@@ -63,16 +63,52 @@ export function TypeManager() {
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim() || !user) return
+    const customTypes = types.filter((t) => !t.is_system)
+    const maxSort = customTypes.reduce((max, t) => Math.max(max, t.sort_order || 0), 0)
     try {
       await createAssetType({
         name,
         icon,
         is_system: false,
+        sort_order: maxSort + 1,
       })
       setName('')
       setIcon(ICONS_LIST[0])
     } catch (err) {
       console.error(err)
+    }
+  }
+
+  const moveType = async (id: string, direction: 'up' | 'down') => {
+    const customTypes = types.filter((t) => !t.is_system)
+    const index = customTypes.findIndex((t) => t.id === id)
+    if (index === -1) return
+    if (direction === 'up' && index === 0) return
+    if (direction === 'down' && index === customTypes.length - 1) return
+
+    const newOrder = [...customTypes]
+    const swapIndex = direction === 'up' ? index - 1 : index + 1
+
+    const temp = newOrder[index]
+    newOrder[index] = newOrder[swapIndex]
+    newOrder[swapIndex] = temp
+
+    const systemTypes = types.filter((t) => t.is_system)
+    setTypes([...systemTypes, ...newOrder])
+
+    const promises = newOrder.map((t, i) => {
+      const newSortOrder = i + 1
+      if (t.sort_order !== newSortOrder) {
+        return updateAssetType(t.id, { sort_order: newSortOrder })
+      }
+      return Promise.resolve()
+    })
+
+    try {
+      await Promise.all(promises)
+    } catch (err) {
+      console.error(err)
+      loadTypes()
     }
   }
 
@@ -176,14 +212,45 @@ export function TypeManager() {
                         </span>
                       </div>
                       {!t.is_system && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDelete(t.id)}
-                        >
-                          <Trash2 size={16} />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <div className="flex flex-col">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                              onClick={() => moveType(t.id, 'up')}
+                              disabled={
+                                types
+                                  .filter((x) => !x.is_system)
+                                  .findIndex((x) => x.id === t.id) === 0
+                              }
+                            >
+                              <ChevronUp size={12} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5 text-muted-foreground hover:text-foreground"
+                              onClick={() => moveType(t.id, 'down')}
+                              disabled={
+                                types
+                                  .filter((x) => !x.is_system)
+                                  .findIndex((x) => x.id === t.id) ===
+                                types.filter((x) => !x.is_system).length - 1
+                              }
+                            >
+                              <ChevronDown size={12} />
+                            </Button>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 ml-1"
+                            onClick={() => handleDelete(t.id)}
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
                       )}
                     </div>
                   )
