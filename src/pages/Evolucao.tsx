@@ -17,9 +17,30 @@ import { ptBR } from 'date-fns/locale'
 import { useDashboardData } from '@/hooks/use-dashboard-data'
 import { getAssetCategories } from '@/services/asset_categories'
 import { useRealtime } from '@/hooks/use-realtime'
+import { useAuth } from '@/hooks/use-auth'
+import { getUsers } from '@/services/users'
+import { Check, ChevronsUpDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 export default function Evolucao() {
-  const { assets, valuationHistory } = useDashboardData()
+  const { user } = useAuth()
+  const [users, setUsers] = useState<any[]>([])
+  const [selectedClient, setSelectedClient] = useState<string | null>(null)
+  const [openClient, setOpenClient] = useState(false)
+
+  const actualClient = selectedClient ?? user?.id ?? 'all'
+
+  const { assets, valuationHistory } = useDashboardData(actualClient)
   const { currency } = useCurrency()
 
   const [categories, setCategories] = useState<any[]>([])
@@ -35,6 +56,12 @@ export default function Evolucao() {
   const [endDate, setEndDate] = useState(() => {
     return new Date().toISOString().substring(0, 10)
   })
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      getUsers().then(setUsers).catch(console.error)
+    }
+  }, [user])
 
   const loadCategories = async () => {
     try {
@@ -179,7 +206,85 @@ export default function Evolucao() {
 
       <Card className="shadow-subtle border-none bg-slate-50 dark:bg-slate-900">
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div
+            className={cn(
+              'grid grid-cols-1 sm:grid-cols-2 gap-4',
+              user?.role === 'admin' ? 'lg:grid-cols-5' : 'lg:grid-cols-4',
+            )}
+          >
+            {user?.role === 'admin' && (
+              <div className="space-y-2">
+                <Label>Cliente</Label>
+                <Popover open={openClient} onOpenChange={setOpenClient}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openClient}
+                      className="w-full justify-between bg-background font-normal border-input"
+                    >
+                      <span className="truncate">
+                        {actualClient === 'all'
+                          ? 'Todos os Clientes'
+                          : users.find((u) => u.id === actualClient)?.name ||
+                            users.find((u) => u.id === actualClient)?.email ||
+                            'Cliente não encontrado'}
+                      </span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="p-0"
+                    align="start"
+                    style={{ width: 'var(--radix-popover-trigger-width)' }}
+                  >
+                    <Command>
+                      <CommandInput placeholder="Buscar cliente..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="all"
+                            keywords={['todos', 'all']}
+                            onSelect={() => {
+                              setSelectedClient('all')
+                              setOpenClient(false)
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                'mr-2 h-4 w-4',
+                                actualClient === 'all' ? 'opacity-100' : 'opacity-0',
+                              )}
+                            />
+                            Todos os Clientes
+                          </CommandItem>
+                          {users.map((u) => (
+                            <CommandItem
+                              key={u.id}
+                              value={u.id}
+                              keywords={[u.name || '', u.email || '']}
+                              onSelect={() => {
+                                setSelectedClient(u.id)
+                                setOpenClient(false)
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  'mr-2 h-4 w-4',
+                                  actualClient === u.id ? 'opacity-100' : 'opacity-0',
+                                )}
+                              />
+                              {u.name || u.email}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Tipo de Ativo</Label>
               <Select value={selectedType} onValueChange={setSelectedType}>
