@@ -24,6 +24,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { AssetReceivableManager } from './AssetReceivableManager'
 import { AssetLiabilityManager } from './AssetLiabilityManager'
+import { CategoryMultiSelect } from './CategoryMultiSelect'
 import { createReceivable } from '@/services/receivables'
 import { createLiability } from '@/services/liabilities'
 import { createAsset } from '@/services/assets'
@@ -50,7 +51,7 @@ export function AssetDialog() {
   const [acquisitionDate, setAcquisitionDate] = useState('')
   const [location, setLocation] = useState('')
   const [notes, setNotes] = useState('')
-  const [categoryId, setCategoryId] = useState('none')
+  const [categoryIds, setCategoryIds] = useState<string[]>([])
 
   const [receivables, setReceivables] = useState<any[]>([])
   const [liabilities, setLiabilities] = useState<any[]>([])
@@ -81,7 +82,7 @@ export function AssetDialog() {
       setAcquisitionDate('')
       setLocation('')
       setNotes('')
-      setCategoryId('none')
+      setCategoryIds([])
       setReceivables([])
       setLiabilities([])
       setFieldErrors({})
@@ -107,7 +108,7 @@ export function AssetDialog() {
         acquisition_date: acquisitionDate || null,
         location,
         notes,
-        category: categoryId === 'none' ? null : categoryId,
+        category: categoryIds.length > 0 ? categoryIds : null,
       })
 
       for (const r of receivables) {
@@ -208,26 +209,11 @@ export function AssetDialog() {
               </div>
               <div className="space-y-2">
                 <Label>Categoria (Opcional)</Label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhuma</SelectItem>
-                    {categories.map((cat) => {
-                      const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
-                      return (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          <div className="flex items-center gap-2">
-                            {/* @ts-expect-error */}
-                            <Icon size={14} style={{ color: cat.color }} />
-                            <span>{cat.name}</span>
-                          </div>
-                        </SelectItem>
-                      )
-                    })}
-                  </SelectContent>
-                </Select>
+                <CategoryMultiSelect
+                  categories={categories}
+                  selected={categoryIds}
+                  onChange={setCategoryIds}
+                />
               </div>
             </div>
 

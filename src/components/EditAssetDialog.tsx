@@ -26,6 +26,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { AssetReceivableManager } from './AssetReceivableManager'
 import { AssetLiabilityManager } from './AssetLiabilityManager'
+import { CategoryMultiSelect } from './CategoryMultiSelect'
 import { createReceivable, deleteReceivable } from '@/services/receivables'
 import { createLiability, deleteLiability } from '@/services/liabilities'
 import { useToast } from '@/hooks/use-toast'
@@ -66,7 +67,9 @@ export function EditAssetDialog({
   )
   const [location, setLocation] = useState(asset.location || '')
   const [notes, setNotes] = useState(asset.notes || '')
-  const [categoryId, setCategoryId] = useState(asset.category || 'none')
+  const [categoryIds, setCategoryIds] = useState<string[]>(
+    Array.isArray(asset.category) ? asset.category : asset.category ? [asset.category] : [],
+  )
 
   useEffect(() => {
     if (open) {
@@ -79,7 +82,9 @@ export function EditAssetDialog({
       setAcquisitionDate(asset.acquisition_date ? asset.acquisition_date.substring(0, 10) : '')
       setLocation(asset.location || '')
       setNotes(asset.notes || '')
-      setCategoryId(asset.category || 'none')
+      setCategoryIds(
+        Array.isArray(asset.category) ? asset.category : asset.category ? [asset.category] : [],
+      )
 
       const fetchLinked = async () => {
         try {
@@ -115,7 +120,7 @@ export function EditAssetDialog({
         acquisition_date: acquisitionDate || null,
         location,
         notes,
-        category: categoryId === 'none' ? null : categoryId,
+        category: categoryIds.length > 0 ? categoryIds : null,
       }
 
       if (onUpdate) {
@@ -239,26 +244,11 @@ export function EditAssetDialog({
               </div>
               <div className="space-y-2">
                 <Label>Categoria</Label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Nenhuma</SelectItem>
-                    {categories.map((cat) => {
-                      const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
-                      return (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          <div className="flex items-center gap-2">
-                            {/* @ts-expect-error */}
-                            <Icon size={14} style={{ color: cat.color }} />
-                            <span>{cat.name}</span>
-                          </div>
-                        </SelectItem>
-                      )
-                    })}
-                  </SelectContent>
-                </Select>
+                <CategoryMultiSelect
+                  categories={categories}
+                  selected={categoryIds}
+                  onChange={setCategoryIds}
+                />
               </div>
             </div>
 

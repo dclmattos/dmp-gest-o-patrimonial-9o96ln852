@@ -38,6 +38,12 @@ export function AssetCard({
   const assetReceivables = receivables.filter((r) => r.asset === asset.id)
   const assetLiabilities = liabilities.filter((l) => l.asset === asset.id)
 
+  const assetCategoryIds = Array.isArray(asset.category)
+    ? asset.category
+    : asset.category
+      ? [asset.category]
+      : []
+
   const totalReceivables = assetReceivables.reduce(
     (acc, r) => acc + convertValue(r.amount, 'BRL', currency),
     0,
@@ -66,23 +72,23 @@ export function AssetCard({
             >
               {asset.subtype || 'Ativo'}
             </Badge>
-            {asset.category &&
-              (() => {
-                const cat = categories?.find((c) => c.id === asset.category)
-                if (!cat) return null
-                const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
-                return (
-                  <Badge
-                    variant="outline"
-                    className="flex items-center gap-1 border-border/50"
-                    style={{ color: cat.color }}
-                  >
-                    {/* @ts-expect-error */}
-                    <Icon size={12} style={{ color: cat.color }} />
-                    {cat.name}
-                  </Badge>
-                )
-              })()}
+            {assetCategoryIds.map((catId) => {
+              const cat = categories?.find((c) => c.id === catId)
+              if (!cat) return null
+              const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
+              return (
+                <Badge
+                  key={catId}
+                  variant="outline"
+                  className="flex items-center gap-1 border-border/50"
+                  style={{ color: cat.color }}
+                >
+                  {/* @ts-expect-error */}
+                  <Icon size={12} style={{ color: cat.color }} />
+                  {cat.name}
+                </Badge>
+              )
+            })}
           </div>
           <div className="flex items-center gap-2">
             <div className="text-slate-400 group-hover:text-primary transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50">
