@@ -21,3 +21,38 @@ export function assetHasCategory(asset: any, categoryId: string): boolean {
 export function assetHasAnyCategory(asset: any): boolean {
   return getAssetCategoryIds(asset).length > 0
 }
+
+const LEGACY_TYPE_MAPPING: Record<string, string> = {
+  Imóveis: 'property',
+  Veículos: 'vehicle',
+  Investimentos: 'investment',
+  Internacional: 'international',
+}
+
+export function getChildCategoryIds(categories: any[], parentId: string): string[] {
+  const children = categories.filter((c) => c.parent_id === parentId)
+  return children.reduce<string[]>((acc, child) => {
+    return [...acc, child.id, ...getChildCategoryIds(categories, child.id)]
+  }, [])
+}
+
+export function assetMatchesCategoryRecursive(
+  asset: any,
+  categoryId: string,
+  allCategories: any[],
+): boolean {
+  const assetCategoryIds = getAssetCategoryIds(asset)
+  if (assetCategoryIds.includes(categoryId)) return true
+  const childIds = getChildCategoryIds(allCategories, categoryId)
+  return assetCategoryIds.some((id) => childIds.includes(id))
+}
+
+export function assetMatchesType(asset: any, selectedType: string, assetTypes: any[]): boolean {
+  if (asset.type === selectedType) return true
+  for (const t of assetTypes) {
+    if (t.id === asset.type_ref && LEGACY_TYPE_MAPPING[t.name] === selectedType) {
+      return true
+    }
+  }
+  return false
+}

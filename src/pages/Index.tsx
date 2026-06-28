@@ -47,10 +47,15 @@ import {
 } from '@/components/ui/select'
 import { AssetCard } from '@/components/AssetCard'
 import { useToast } from '@/hooks/use-toast'
-import { assetHasCategory, assetHasAnyCategory } from '@/lib/asset-utils'
+import {
+  assetHasCategory,
+  assetHasAnyCategory,
+  assetMatchesCategoryRecursive,
+  assetMatchesType,
+} from '@/lib/asset-utils'
 
 export default function Index() {
-  const { assets, liabilities, receivables, valuationHistory } = useDashboardData()
+  const { assets, liabilities, receivables, valuationHistory, loading } = useDashboardData()
   const { currency } = useCurrency()
   const [categories, setCategories] = useState<any[]>([])
 
@@ -84,7 +89,8 @@ export default function Index() {
 
   const loadCategories = async () => {
     try {
-      const data = await getAssetCategories()
+      const userId = selectedUser === 'all' ? undefined : selectedUser
+      const data = await getAssetCategories(userId)
       setCategories(data)
     } catch {
       /* intentionally ignored */
@@ -94,7 +100,8 @@ export default function Index() {
   const [assetTypes, setAssetTypes] = useState<any[]>([])
   const loadAssetTypes = async () => {
     try {
-      const data = await getAssetTypes()
+      const userId = selectedUser === 'all' ? undefined : selectedUser
+      const data = await getAssetTypes(userId)
       setAssetTypes(data)
     } catch {
       /* intentionally ignored */
@@ -141,8 +148,12 @@ export default function Index() {
   const allAssets = assets.map((a) => localAssets[a.id] ?? a)
 
   const filteredAssets = allAssets.filter((a) => {
-    const matchType = selectedType === 'all' || a.type === selectedType
-    const matchCategory = selectedCategory === 'all' || assetHasCategory(a, selectedCategory)
+    const matchType =
+      selectedType === 'all' ||
+      a.type === selectedType ||
+      assetMatchesType(a, selectedType, assetTypes)
+    const matchCategory =
+      selectedCategory === 'all' || assetMatchesCategoryRecursive(a, selectedCategory, categories)
     const matchUser = selectedUser === 'all' || a.user === selectedUser
     return matchType && matchCategory && matchUser
   })
@@ -483,6 +494,31 @@ export default function Index() {
       }
     })
   }, [projectionMonths, filteredReceivables, filteredLiabilities, currency])
+
+  if (loading) {
+    return (
+      <div className="space-y-8 animate-fade-in-up">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
+          <div>
+            <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+            <div className="h-4 w-64 bg-muted animate-pulse rounded mt-2" />
+          </div>
+          <div className="flex gap-3">
+            <div className="h-10 w-[180px] bg-muted animate-pulse rounded" />
+            <div className="h-10 w-[200px] bg-muted animate-pulse rounded" />
+          </div>
+        </div>
+        <div className="h-[280px] bg-muted animate-pulse rounded-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="h-[400px] bg-muted animate-pulse rounded-lg" />
+          <div className="md:col-span-2 space-y-6">
+            <div className="h-[180px] bg-muted animate-pulse rounded-lg" />
+            <div className="h-[300px] bg-muted animate-pulse rounded-lg" />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8 animate-fade-in-up">

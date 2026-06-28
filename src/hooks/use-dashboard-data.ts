@@ -19,12 +19,16 @@ export function useDashboardData(userId?: string) {
   const [liabilities, setLiabilities] = useState<any[]>([])
   const [receivables, setReceivables] = useState<any[]>([])
   const [valuationHistory, setValuationHistory] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
   const effectiveUserIdRef = useRef(effectiveUserId)
   effectiveUserIdRef.current = effectiveUserId
 
+  const isFirstLoadRef = useRef(true)
+
   const load = async () => {
     try {
+      if (isFirstLoadRef.current) setLoading(true)
       const [a, l, r, vh] = await Promise.all([
         getAssets(effectiveUserIdRef.current),
         getLiabilities(effectiveUserIdRef.current),
@@ -37,10 +41,14 @@ export function useDashboardData(userId?: string) {
       setValuationHistory(vh)
     } catch (e) {
       console.error(e)
+    } finally {
+      isFirstLoadRef.current = false
+      setLoading(false)
     }
   }
 
   useEffect(() => {
+    isFirstLoadRef.current = true
     load()
   }, [effectiveUserId])
 
@@ -55,5 +63,5 @@ export function useDashboardData(userId?: string) {
   useRealtime('receivables', debouncedLoad)
   useRealtime('valuation_history', debouncedLoad)
 
-  return { assets, liabilities, receivables, valuationHistory, refetch: load }
+  return { assets, liabilities, receivables, valuationHistory, refetch: load, loading }
 }
