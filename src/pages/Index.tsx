@@ -104,7 +104,7 @@ export default function Index() {
   useEffect(() => {
     loadCategories()
     loadAssetTypes()
-  }, [])
+  }, [selectedUser])
   useRealtime('asset_categories', loadCategories)
   useRealtime('asset_types', loadAssetTypes)
   useRealtime('assets', () => {
@@ -113,13 +113,22 @@ export default function Index() {
   })
 
   const { toast } = useToast()
+  const [localAssets, setLocalAssets] = useState<Record<string, any>>({})
+
+  useEffect(() => {
+    setLocalAssets({})
+  }, [assets])
+
+  const handleUpdateAsset = (updated: any) => {
+    setLocalAssets((prev) => ({ ...prev, [updated.id]: updated }))
+  }
 
   const handleDeleteAsset = async (id: string) => {
     try {
       await deleteAsset(id)
       toast({
         title: 'Sucesso',
-        description: 'Ativo excluído com sucesso.',
+        description: 'Ativo excluída com sucesso.',
       })
     } catch (error) {
       toast({
@@ -129,8 +138,9 @@ export default function Index() {
       })
     }
   }
+  const allAssets = assets.map((a) => localAssets[a.id] ?? a)
 
-  const filteredAssets = assets.filter((a) => {
+  const filteredAssets = allAssets.filter((a) => {
     const matchType = selectedType === 'all' || a.type === selectedType
     const matchCategory = selectedCategory === 'all' || assetHasCategory(a, selectedCategory)
     const matchUser = selectedUser === 'all' || a.user === selectedUser
@@ -959,6 +969,7 @@ export default function Index() {
               receivables={receivables}
               liabilities={liabilities}
               onDelete={handleDeleteAsset}
+              onUpdate={handleUpdateAsset}
             />
           ))}
           {filteredAssets.length === 0 && (

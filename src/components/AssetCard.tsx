@@ -4,6 +4,7 @@ import { Trash2 } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { formatCurrency, convertValue, useCurrency } from '@/hooks/use-currency'
 import { EditAssetDialog } from '@/components/EditAssetDialog'
+import { getAssetCategories } from '@/lib/asset-utils'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +21,8 @@ interface AssetCardProps {
   asset: any
   categories: any[]
   types: any[]
+  receivables?: any[]
+  liabilities?: any[]
   onDelete: (id: string) => void
   onUpdate?: (updated: any) => void
 }
@@ -38,11 +41,7 @@ export function AssetCard({
   const assetReceivables = receivables.filter((r) => r.asset === asset.id)
   const assetLiabilities = liabilities.filter((l) => l.asset === asset.id)
 
-  const assetCategoryIds = Array.isArray(asset.category)
-    ? asset.category
-    : asset.category
-      ? [asset.category]
-      : []
+  const assetCategories = getAssetCategories(asset, categories)
 
   const totalReceivables = assetReceivables.reduce(
     (acc, r) => acc + convertValue(r.amount, 'BRL', currency),
@@ -72,13 +71,11 @@ export function AssetCard({
             >
               {asset.subtype || 'Ativo'}
             </Badge>
-            {assetCategoryIds.map((catId) => {
-              const cat = categories?.find((c) => c.id === catId)
-              if (!cat) return null
+            {assetCategories.map((cat) => {
               const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
               return (
                 <Badge
-                  key={catId}
+                  key={cat.id}
                   variant="outline"
                   className="flex items-center gap-1 border-border/50"
                   style={{ color: cat.color }}
