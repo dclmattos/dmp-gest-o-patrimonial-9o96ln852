@@ -14,6 +14,7 @@ import { getAssetCategories } from '@/services/asset_categories'
 import { getAssetTypes } from '@/services/asset_types'
 import { deleteAsset } from '@/services/assets'
 import { useRealtime } from '@/hooks/use-realtime'
+import { getAssetCategoryIds } from '@/lib/asset-utils'
 import { useToast } from '@/hooks/use-toast'
 import { getUsers } from '@/services/users'
 import { setSelectedUserId } from '@/stores/selectedUser'
@@ -137,12 +138,16 @@ export default function Patrimonio() {
       'Preço de Compra',
     ]
     const rows = filtered.map((a) => {
-      const cat = categories.find((c) => c.id === a.category)
+      const catIds = getAssetCategoryIds(a)
+      const catNames = catIds
+        .map((cid) => categories.find((c) => c.id === cid)?.name)
+        .filter(Boolean)
+        .join('; ')
       const t = types.find((t) => t.id === a.type_ref)
       return [
         `"${a.name}"`,
         `"${t ? t.name : a.type || ''}"`,
-        `"${cat ? cat.name : ''}"`,
+        `"${catNames}"`,
         `"${a.currency}"`,
         a.current_valuation,
         a.purchase_price || 0,

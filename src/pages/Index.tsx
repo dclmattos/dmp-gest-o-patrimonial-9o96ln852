@@ -47,6 +47,7 @@ import {
 } from '@/components/ui/select'
 import { AssetCard } from '@/components/AssetCard'
 import { useToast } from '@/hooks/use-toast'
+import { assetHasCategory, assetHasAnyCategory } from '@/lib/asset-utils'
 
 export default function Index() {
   const { assets, liabilities, receivables, valuationHistory } = useDashboardData()
@@ -127,7 +128,7 @@ export default function Index() {
 
   const filteredAssets = assets.filter((a) => {
     const matchType = selectedType === 'all' || a.type === selectedType
-    const matchCategory = selectedCategory === 'all' || a.category === selectedCategory
+    const matchCategory = selectedCategory === 'all' || assetHasCategory(a, selectedCategory)
     const matchUser = selectedUser === 'all' || a.user === selectedUser
     return matchType && matchCategory && matchUser
   })
@@ -207,7 +208,7 @@ export default function Index() {
           name: c.name,
           icon: c.icon,
           value: filteredAssets
-            .filter((a) => a.category === c.id)
+            .filter((a) => assetHasCategory(a, c.id))
             .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0),
           color: c.color || `hsl(var(--chart-${(i % 5) + 1}))`,
         }))
@@ -216,7 +217,7 @@ export default function Index() {
           name: 'Sem Categoria',
           icon: 'Box',
           value: filteredAssets
-            .filter((a) => !a.category)
+            .filter((a) => !assetHasAnyCategory(a))
             .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0),
           color: 'hsl(var(--muted))',
         })
@@ -906,7 +907,7 @@ export default function Index() {
             {categories
               .filter((c) => c.goal_value > 0)
               .map((cat) => {
-                const catAssets = filteredAssets.filter((a) => a.category === cat.id)
+                const catAssets = filteredAssets.filter((a) => assetHasCategory(a, cat.id))
                 const current = catAssets.reduce(
                   (sum, a) => sum + convertValue(a.current_valuation, a.currency, currency),
                   0,
