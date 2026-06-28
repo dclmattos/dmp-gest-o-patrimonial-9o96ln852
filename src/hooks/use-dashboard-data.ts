@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getAssets } from '@/services/assets'
 import { getLiabilities } from '@/services/liabilities'
@@ -20,13 +20,16 @@ export function useDashboardData(userId?: string) {
   const [receivables, setReceivables] = useState<any[]>([])
   const [valuationHistory, setValuationHistory] = useState<any[]>([])
 
+  const effectiveUserIdRef = useRef(effectiveUserId)
+  effectiveUserIdRef.current = effectiveUserId
+
   const load = async () => {
     try {
       const [a, l, r, vh] = await Promise.all([
-        getAssets(effectiveUserId),
-        getLiabilities(effectiveUserId),
-        getReceivables(effectiveUserId),
-        getValuationHistory(effectiveUserId),
+        getAssets(effectiveUserIdRef.current),
+        getLiabilities(effectiveUserIdRef.current),
+        getReceivables(effectiveUserIdRef.current),
+        getValuationHistory(effectiveUserIdRef.current),
       ])
       setAssets(a)
       setLiabilities(l)
@@ -41,42 +44,16 @@ export function useDashboardData(userId?: string) {
     load()
   }, [effectiveUserId])
 
-  useRealtime('assets', (e) => {
-    if (effectiveUserId && e.record.user !== effectiveUserId) return
-    if (e.action === 'create') setAssets((prev) => [...prev, e.record])
-    else if (e.action === 'update')
-      setAssets((prev) => prev.map((item) => (item.id === e.record.id ? e.record : item)))
-    else if (e.action === 'delete')
-      setAssets((prev) => prev.filter((item) => item.id !== e.record.id))
-    else load()
-  })
-  useRealtime('liabilities', (e) => {
-    if (effectiveUserId && e.record.user !== effectiveUserId) return
-    if (e.action === 'create') setLiabilities((prev) => [...prev, e.record])
-    else if (e.action === 'update')
-      setLiabilities((prev) => prev.map((item) => (item.id === e.record.id ? e.record : item)))
-    else if (e.action === 'delete')
-      setLiabilities((prev) => prev.filter((item) => item.id !== e.record.id))
-    else load()
-  })
-  useRealtime('receivables', (e) => {
-    if (effectiveUserId && e.record.user !== effectiveUserId) return
-    if (e.action === 'create') setReceivables((prev) => [...prev, e.record])
-    else if (e.action === 'update')
-      setReceivables((prev) => prev.map((item) => (item.id === e.record.id ? e.record : item)))
-    else if (e.action === 'delete')
-      setReceivables((prev) => prev.filter((item) => item.id !== e.record.id))
-    else load()
-  })
-  useRealtime('valuation_history', (e) => {
-    if (effectiveUserId && e.record.user !== effectiveUserId) return
-    if (e.action === 'create') setValuationHistory((prev) => [...prev, e.record])
-    else if (e.action === 'update')
-      setValuationHistory((prev) => prev.map((item) => (item.id === e.record.id ? e.record : item)))
-    else if (e.action === 'delete')
-      setValuationHistory((prev) => prev.filter((item) => item.id !== e.record.id))
-    else load()
-  })
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const debouncedLoad = () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => load(), 150)
+  }
+
+  useRealtime('assets', debouncedLoad)
+  useRealtime('liabilities', debouncedLoad)
+  useRealtime('receivables', debouncedLoad)
+  useRealtime('valuation_history', debouncedLoad)
 
   return { assets, liabilities, receivables, valuationHistory, refetch: load }
 }

@@ -107,6 +107,10 @@ export default function Index() {
   }, [])
   useRealtime('asset_categories', loadCategories)
   useRealtime('asset_types', loadAssetTypes)
+  useRealtime('assets', () => {
+    loadCategories()
+    loadAssetTypes()
+  })
 
   const { toast } = useToast()
 
