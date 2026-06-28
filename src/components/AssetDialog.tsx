@@ -108,7 +108,7 @@ export function AssetDialog() {
         acquisition_date: acquisitionDate || null,
         location,
         notes,
-        category: categoryIds.length > 0 ? categoryIds : null,
+        category: categoryIds.length > 0 ? categoryIds : [],
       })
 
       for (const r of receivables) {

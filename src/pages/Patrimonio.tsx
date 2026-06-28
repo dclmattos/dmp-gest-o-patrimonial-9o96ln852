@@ -76,6 +76,17 @@ export default function Patrimonio() {
 
   const queryUserId = isAdmin && !selectedClient ? 'skip' : selectedClient || undefined
   const { assets, receivables, liabilities } = useDashboardData(queryUserId)
+  const [localAssets, setLocalAssets] = useState<Record<string, any>>({})
+
+  useEffect(() => {
+    setLocalAssets({})
+  }, [assets])
+
+  const handleUpdateAsset = (updated: any) => {
+    setLocalAssets((prev) => ({ ...prev, [updated.id]: updated }))
+  }
+
+  const allAssets = assets.map((a) => localAssets[a.id] ?? a)
 
   const { currency } = useCurrency()
   const [tab, setTab] = useState('all')
@@ -114,7 +125,7 @@ export default function Patrimonio() {
     }
   }
 
-  const filtered = tab === 'all' ? assets : assets.filter((a) => a.type_ref === tab)
+  const filtered = tab === 'all' ? allAssets : allAssets.filter((a) => a.type_ref === tab)
 
   const handleExport = () => {
     const headers = [
@@ -255,6 +266,7 @@ export default function Patrimonio() {
                   receivables={receivables}
                   liabilities={liabilities}
                   onDelete={handleDeleteAsset}
+                  onUpdate={handleUpdateAsset}
                 />
               </div>
             ))}

@@ -120,14 +120,10 @@ export function EditAssetDialog({
         acquisition_date: acquisitionDate || null,
         location,
         notes,
-        category: categoryIds.length > 0 ? categoryIds : null,
+        category: categoryIds.length > 0 ? categoryIds : [],
       }
 
-      if (onUpdate) {
-        onUpdate({ ...asset, ...dataToUpdate })
-      }
-
-      await updateAsset(asset.id, dataToUpdate)
+      const updatedAsset = await updateAsset(asset.id, dataToUpdate)
 
       const deletedRecs = initialReceivables.filter(
         (ir) => !receivables.find((r) => r.id === ir.id),
@@ -144,7 +140,7 @@ export function EditAssetDialog({
       for (const l of newLiabs) await createLiability({ ...l, asset: asset.id, user: user.id })
 
       if (onUpdate) {
-        onUpdate({ ...asset, ...dataToUpdate })
+        onUpdate(updatedAsset)
       }
       setOpen(false)
       toast({ title: 'Sucesso', description: 'Ativo atualizado com sucesso.' })
