@@ -26,6 +26,7 @@ const LEGACY_TYPE_MAPPING: Record<string, string> = {
   Imóveis: 'property',
   Veículos: 'vehicle',
   Investimentos: 'investment',
+  'Investimentos BR': 'investment',
   Internacional: 'international',
   'Participações Societárias': 'equity',
 }
@@ -48,27 +49,41 @@ export function assetMatchesCategoryRecursive(
   return assetCategoryIds.some((id) => childIds.includes(id))
 }
 
-export function assetMatchesType(asset: any, selectedType: string, assetTypes: any[]): boolean {
-  if (asset.type === selectedType) return true
+function matchesBaseType(asset: any, baseType: string, assetTypes: any[]): boolean {
+  if (asset.type === baseType) return true
   for (const t of assetTypes) {
-    if (t.id === asset.type_ref && LEGACY_TYPE_MAPPING[t.name] === selectedType) {
+    if (t.id === asset.type_ref && LEGACY_TYPE_MAPPING[t.name] === baseType) {
       return true
     }
   }
   return false
 }
 
+export function assetMatchesType(asset: any, selectedType: string, assetTypes: any[]): boolean {
+  if (selectedType === 'investment') {
+    return matchesBaseType(asset, 'investment', assetTypes) && asset.currency === 'BRL'
+  }
+  if (selectedType === 'international') {
+    if (matchesBaseType(asset, 'international', assetTypes)) return true
+    return matchesBaseType(asset, 'investment', assetTypes) && asset.currency !== 'BRL'
+  }
+  return matchesBaseType(asset, selectedType, assetTypes)
+}
+
 const BASE_TYPES = ['property', 'vehicle', 'investment', 'international', 'equity']
 
 export function getAssetBaseType(asset: any, assetTypes: any[]): string | null {
+  let baseType: string | null = null
   if (asset.type && BASE_TYPES.includes(asset.type)) {
-    return asset.type
-  }
-  if (asset.type_ref) {
+    baseType = asset.type
+  } else if (asset.type_ref) {
     const customType = assetTypes.find((t) => t.id === asset.type_ref)
     if (customType && LEGACY_TYPE_MAPPING[customType.name]) {
-      return LEGACY_TYPE_MAPPING[customType.name]
+      baseType = LEGACY_TYPE_MAPPING[customType.name]
     }
   }
-  return asset.type || null
+  if (baseType === 'investment' && asset.currency && asset.currency !== 'BRL') {
+    return 'international'
+  }
+  return baseType || asset.type || null
 }

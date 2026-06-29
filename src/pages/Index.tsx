@@ -149,10 +149,7 @@ export default function Index() {
   const allAssets = assets.map((a) => localAssets[a.id] ?? a)
 
   const filteredAssets = allAssets.filter((a) => {
-    const matchType =
-      selectedType === 'all' ||
-      a.type === selectedType ||
-      assetMatchesType(a, selectedType, assetTypes)
+    const matchType = selectedType === 'all' || assetMatchesType(a, selectedType, assetTypes)
     const matchCategory =
       selectedCategory === 'all' || assetMatchesCategoryRecursive(a, selectedCategory, categories)
     const matchUser = selectedUser === 'all' || a.user === selectedUser
