@@ -52,7 +52,10 @@ export function AssetDialog() {
   const [location, setLocation] = useState('')
   const [notes, setNotes] = useState('')
   const [categoryIds, setCategoryIds] = useState<string[]>([])
-
+  const [equityPercentage, setEquityPercentage] = useState('')
+  const [modality, setModality] = useState('')
+  const [contractInfo, setContractInfo] = useState('')
+  const [corporateDetails, setCorporateDetails] = useState('')
   const [receivables, setReceivables] = useState<any[]>([])
   const [liabilities, setLiabilities] = useState<any[]>([])
   const [isSaving, setIsSaving] = useState(false)
@@ -83,6 +86,10 @@ export function AssetDialog() {
       setLocation('')
       setNotes('')
       setCategoryIds([])
+      setEquityPercentage('')
+      setModality('')
+      setContractInfo('')
+      setCorporateDetails('')
       setReceivables([])
       setLiabilities([])
       setFieldErrors({})
@@ -91,6 +98,9 @@ export function AssetDialog() {
 
   useRealtime('asset_categories', loadData, open)
   useRealtime('asset_types', loadData, open)
+
+  const selectedType = types.find((t) => t.id === typeRef)
+  const isEquityType = selectedType?.name === 'Participações Societárias'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -101,6 +111,7 @@ export function AssetDialog() {
       const asset = await createAsset({
         name,
         type_ref: typeRef,
+        ...(isEquityType ? { type: 'equity' } : {}),
         subtype,
         currency,
         current_valuation: Number(valuation),
@@ -109,6 +120,10 @@ export function AssetDialog() {
         location,
         notes,
         category: categoryIds.length > 0 ? categoryIds : [],
+        equity_percentage: isEquityType && equityPercentage ? Number(equityPercentage) : null,
+        modality: isEquityType ? modality : null,
+        contract_info: isEquityType ? contractInfo : null,
+        corporate_details: isEquityType ? corporateDetails : null,
       })
 
       for (const r of receivables) {
@@ -280,6 +295,63 @@ export function AssetDialog() {
                 placeholder="Informações adicionais..."
               />
             </div>
+
+            {isEquityType && (
+              <div className="space-y-4 border rounded-md p-4 bg-primary/5">
+                <p className="text-sm font-medium text-primary">Detalhes Societários</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Percentual de Participação (%)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={equityPercentage}
+                      onChange={(e) => setEquityPercentage(e.target.value)}
+                      placeholder="Ex: 25.00"
+                      className={fieldErrors.equity_percentage ? 'border-red-500' : ''}
+                    />
+                    {fieldErrors.equity_percentage && (
+                      <p className="text-sm text-red-500">{fieldErrors.equity_percentage}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Modalidade</Label>
+                    <Select value={modality} onValueChange={setModality}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="LTDA">LTDA</SelectItem>
+                        <SelectItem value="S/A">S/A</SelectItem>
+                        <SelectItem value="SCP">SCP</SelectItem>
+                        <SelectItem value="EIRELI">EIRELI</SelectItem>
+                        <SelectItem value="SLU">SLU</SelectItem>
+                        <SelectItem value="MEI">MEI</SelectItem>
+                        <SelectItem value="EI">EI</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Contratualização</Label>
+                  <Input
+                    value={contractInfo}
+                    onChange={(e) => setContractInfo(e.target.value)}
+                    placeholder="Ex: Contrato social registrado, em fase de alteração..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Detalhes Societários</Label>
+                  <Textarea
+                    value={corporateDetails}
+                    onChange={(e) => setCorporateDetails(e.target.value)}
+                    placeholder="Informações sobre contrato social, quotas, cláusulas especiais..."
+                  />
+                </div>
+              </div>
+            )}
 
             <Collapsible className="border rounded-md p-3 space-y-2 bg-background">
               <CollapsibleTrigger className="flex items-center justify-between w-full font-medium text-sm hover:text-primary transition-colors [&[data-state=open]>svg]:rotate-180">

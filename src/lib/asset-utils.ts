@@ -27,6 +27,7 @@ const LEGACY_TYPE_MAPPING: Record<string, string> = {
   Veículos: 'vehicle',
   Investimentos: 'investment',
   Internacional: 'international',
+  'Participações Societárias': 'equity',
 }
 
 export function getChildCategoryIds(categories: any[], parentId: string): string[] {
@@ -57,7 +58,7 @@ export function assetMatchesType(asset: any, selectedType: string, assetTypes: a
   return false
 }
 
-const BASE_TYPES = ['property', 'vehicle', 'investment', 'international']
+const BASE_TYPES = ['property', 'vehicle', 'investment', 'international', 'equity']
 
 export function getAssetBaseType(asset: any, assetTypes: any[]): string | null {
   if (asset.type && BASE_TYPES.includes(asset.type)) {

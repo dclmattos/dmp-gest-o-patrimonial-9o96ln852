@@ -1,5 +1,14 @@
 onRecordAfterUpdateSuccess((e) => {
-  const fields = ['name', 'type', 'subtype', 'location', 'notes']
+  const fields = [
+    'name',
+    'type',
+    'subtype',
+    'location',
+    'notes',
+    'modality',
+    'contract_info',
+    'corporate_details',
+  ]
   const changed = fields.some((f) => e.record.getString(f) !== e.record.original().getString(f))
   if (!changed) return e.next()
 

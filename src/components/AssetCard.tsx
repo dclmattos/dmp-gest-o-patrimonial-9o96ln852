@@ -158,6 +158,18 @@ export function AssetCard({
               <span className="font-medium truncate max-w-[150px]">{asset.location}</span>
             </div>
           )}
+          {asset.equity_percentage != null && (
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Participação Societária</span>
+              <span className="font-medium">{Number(asset.equity_percentage).toFixed(2)}%</span>
+            </div>
+          )}
+          {asset.modality && (
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Modalidade</span>
+              <span className="font-medium">{asset.modality}</span>
+            </div>
+          )}
           {(assetReceivables.length > 0 || assetLiabilities.length > 0) && (
             <div className="flex items-center justify-between text-xs pt-2 border-t border-border/40">
               <span className="text-muted-foreground">Rentabilidade Líquida</span>

@@ -5,6 +5,9 @@ onRecordAfterCreateSuccess((e) => {
     e.record.getString('subtype'),
     e.record.getString('location'),
     e.record.getString('notes'),
+    e.record.getString('modality'),
+    e.record.getString('contract_info'),
+    e.record.getString('corporate_details'),
   ]
     .filter(Boolean)
     .join('\n\n')
