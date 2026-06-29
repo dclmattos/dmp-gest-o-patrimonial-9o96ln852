@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { X, Tags, ChevronDown } from 'lucide-react'
 import * as Icons from 'lucide-react'
+import { sortAlphabetically } from '@/lib/sort-utils'
 
 interface CategoryMultiSelectProps {
   categories: any[]
@@ -58,7 +59,7 @@ export function CategoryMultiSelect({ categories, selected, onChange }: Category
                   Nenhuma categoria disponível.
                 </div>
               ) : (
-                categories.map((cat) => {
+                sortAlphabetically(categories, 'name').map((cat) => {
                   const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
                   const isSelected = selected.includes(cat.id)
                   return (

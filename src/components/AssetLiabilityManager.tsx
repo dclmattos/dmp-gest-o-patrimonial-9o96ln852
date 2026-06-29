@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Plus, Trash2 } from 'lucide-react'
+import { sortAlphabetically } from '@/lib/sort-utils'
 
 export function AssetLiabilityManager({
   liabilities,
@@ -25,7 +26,7 @@ export function AssetLiabilityManager({
 
   const handleAdd = () => {
     if (!name) return
-    setLiabilities([
+    const newLiabilities = [
       ...liabilities,
       {
         name,
@@ -43,7 +44,13 @@ export function AssetLiabilityManager({
         monthly_due_day: isRecurring && monthlyDueDay ? Number(monthlyDueDay) : null,
         end_date: hasEndDate && endDate ? new Date(endDate + 'T12:00:00.000Z').toISOString() : null,
       },
-    ])
+    ]
+    newLiabilities.sort((a, b) =>
+      String(a.name ?? '')
+        .toLowerCase()
+        .localeCompare(String(b.name ?? '').toLowerCase(), 'pt-BR'),
+    )
+    setLiabilities(newLiabilities)
     setName('')
     setTotalValue('')
     setRemainingBalance('')

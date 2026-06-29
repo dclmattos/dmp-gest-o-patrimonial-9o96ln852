@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus, Trash2 } from 'lucide-react'
+import { sortAlphabetically } from '@/lib/sort-utils'
 
 export function AssetReceivableManager({
   receivables,
@@ -25,7 +26,7 @@ export function AssetReceivableManager({
 
   const handleAdd = () => {
     if (!source || !amount) return
-    setReceivables([
+    const newReceivables = [
       ...receivables,
       {
         source,
@@ -35,7 +36,13 @@ export function AssetReceivableManager({
           : null,
         frequency,
       },
-    ])
+    ]
+    newReceivables.sort((a, b) =>
+      String(a.source ?? '')
+        .toLowerCase()
+        .localeCompare(String(b.source ?? '').toLowerCase(), 'pt-BR'),
+    )
+    setReceivables(newReceivables)
     setSource('')
     setAmount('')
     setExpectedDate('')

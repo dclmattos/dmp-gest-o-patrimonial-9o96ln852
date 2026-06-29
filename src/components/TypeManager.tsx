@@ -21,6 +21,7 @@ import * as Icons from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { createAssetType, deleteAssetType, getAssetTypes } from '@/services/asset_types'
 import { useRealtime } from '@/hooks/use-realtime'
+import { sortAlphabetically } from '@/lib/sort-utils'
 
 const ICONS_LIST = [
   'Building2',
@@ -49,7 +50,7 @@ export function TypeManager() {
   const loadTypes = async () => {
     try {
       const data = await getAssetTypes()
-      setTypes(data)
+      setTypes(sortAlphabetically(data, 'name'))
     } catch {
       /* intentionally ignored */
     }

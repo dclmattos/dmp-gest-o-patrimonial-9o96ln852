@@ -15,6 +15,7 @@ import { getAssetTypes } from '@/services/asset_types'
 import { deleteAsset } from '@/services/assets'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getAssetCategoryIds } from '@/lib/asset-utils'
+import { sortAlphabetically } from '@/lib/sort-utils'
 import { useToast } from '@/hooks/use-toast'
 import { getUsers } from '@/services/users'
 import { setSelectedUserId } from '@/stores/selectedUser'
@@ -126,7 +127,12 @@ export default function Patrimonio() {
     }
   }
 
-  const filtered = tab === 'all' ? allAssets : allAssets.filter((a) => a.type_ref === tab)
+  const filtered = (tab === 'all' ? allAssets : allAssets.filter((a) => a.type_ref === tab)).sort(
+    (a, b) =>
+      String(a.name ?? '')
+        .toLowerCase()
+        .localeCompare(String(b.name ?? '').toLowerCase(), 'pt-BR'),
+  )
 
   const handleExport = () => {
     const headers = [
@@ -245,7 +251,7 @@ export default function Patrimonio() {
           <TabsTrigger value="all" className="rounded-md py-2">
             Todos os Ativos
           </TabsTrigger>
-          {types.map((t) => (
+          {sortAlphabetically(types, 'name').map((t) => (
             <TabsTrigger key={t.id} value={t.id} className="rounded-md py-2">
               {t.name}
             </TabsTrigger>

@@ -26,6 +26,7 @@ import {
   updateAssetCategory,
 } from '@/services/asset_categories'
 import { useRealtime } from '@/hooks/use-realtime'
+import { sortAlphabetically } from '@/lib/sort-utils'
 
 const COLORS = [
   '#ef4444',
@@ -169,9 +170,10 @@ export function CategoryManager() {
 
   const renderCategory = (cat: any, index: number, depth: number = 0) => {
     const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
-    const children = categories
-      .filter((c) => c.parent_id === cat.id)
-      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+    const children = sortAlphabetically(
+      categories.filter((c) => c.parent_id === cat.id),
+      'name',
+    )
 
     return (
       <div key={cat.id} className="space-y-2">
@@ -220,9 +222,10 @@ export function CategoryManager() {
     )
   }
 
-  const rootCategories = categories
-    .filter((c) => !c.parent_id)
-    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+  const rootCategories = sortAlphabetically(
+    categories.filter((c) => !c.parent_id),
+    'name',
+  )
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -263,13 +266,14 @@ export function CategoryManager() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Nenhum (Raiz)</SelectItem>
-                      {categories
-                        .filter((c) => !c.parent_id)
-                        .map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.name}
-                          </SelectItem>
-                        ))}
+                      {sortAlphabetically(
+                        categories.filter((c) => !c.parent_id),
+                        'name',
+                      ).map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

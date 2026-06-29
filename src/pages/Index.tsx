@@ -54,6 +54,7 @@ import {
   assetMatchesType,
   getAssetBaseType,
 } from '@/lib/asset-utils'
+import { sortAlphabetically } from '@/lib/sort-utils'
 
 export default function Index() {
   const { assets, liabilities, receivables, valuationHistory, loading } = useDashboardData()
@@ -148,13 +149,19 @@ export default function Index() {
   }
   const allAssets = assets.map((a) => localAssets[a.id] ?? a)
 
-  const filteredAssets = allAssets.filter((a) => {
-    const matchType = selectedType === 'all' || assetMatchesType(a, selectedType, assetTypes)
-    const matchCategory =
-      selectedCategory === 'all' || assetMatchesCategoryRecursive(a, selectedCategory, categories)
-    const matchUser = selectedUser === 'all' || a.user === selectedUser
-    return matchType && matchCategory && matchUser
-  })
+  const filteredAssets = allAssets
+    .filter((a) => {
+      const matchType = selectedType === 'all' || assetMatchesType(a, selectedType, assetTypes)
+      const matchCategory =
+        selectedCategory === 'all' || assetMatchesCategoryRecursive(a, selectedCategory, categories)
+      const matchUser = selectedUser === 'all' || a.user === selectedUser
+      return matchType && matchCategory && matchUser
+    })
+    .sort((a, b) =>
+      String(a.name ?? '')
+        .toLowerCase()
+        .localeCompare(String(b.name ?? '').toLowerCase(), 'pt-BR'),
+    )
 
   const filteredLiabilities = liabilities.filter(
     (l) => selectedUser === 'all' || l.user === selectedUser,
@@ -416,7 +423,10 @@ export default function Index() {
       return exp >= now && exp <= next7Days
     })
 
-    return { upcomingLiabilities: upcomingL, upcomingReceivables: upcomingR }
+    return {
+      upcomingLiabilities: sortAlphabetically(upcomingL, 'name'),
+      upcomingReceivables: sortAlphabetically(upcomingR, 'source'),
+    }
   }, [filteredLiabilities, filteredReceivables])
 
   const monthlyVariation = useMemo(() => {
@@ -575,7 +585,7 @@ export default function Index() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas as Categorias</SelectItem>
-              {categories.map((c) => (
+              {sortAlphabetically(categories, 'name').map((c) => (
                 <SelectItem key={c.id} value={c.id}>
                   {c.name}
                 </SelectItem>
@@ -966,7 +976,7 @@ export default function Index() {
         <div className="mt-8">
           <h3 className="text-xl font-serif mb-4">Metas por Categoria</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {categories
+            {sortAlphabetically(categories, 'name')
               .filter((c) => c.goal_value > 0)
               .map((cat) => {
                 const catAssets = filteredAssets.filter((a) => assetHasCategory(a, cat.id))
