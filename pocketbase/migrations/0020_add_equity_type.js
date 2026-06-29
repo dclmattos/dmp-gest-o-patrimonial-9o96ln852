@@ -34,15 +34,7 @@ migrate(
       record.set('name', 'Participações Societárias')
       record.set('icon', 'Building2')
       record.set('is_system', true)
-      const existing = app.findRecordsByFilter(
-        'asset_types',
-        'is_system = true',
-        '-sort_order',
-        1,
-        0,
-      )
-      const maxSort = existing.length > 0 ? existing[0].getNumber('sort_order') || 0 : 0
-      record.set('sort_order', maxSort + 1)
+      record.set('sort_order', app.countRecords('asset_types') + 1)
       app.save(record)
     }
   },

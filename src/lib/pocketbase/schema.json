@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-29T01:06:31.423Z",
+  "generatedAt": "2026-06-29T01:11:45.590Z",
   "collections": [
     {
       "name": "users",
@@ -74,13 +74,6 @@
           "type": "text",
           "required": true,
           "system": false
-        },
-        {
-          "name": "type",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": ["property", "vehicle", "investment", "international"]
         },
         {
           "name": "subtype",
@@ -160,6 +153,37 @@
           "required": false,
           "system": false,
           "collectionRef": "asset_categories"
+        },
+        {
+          "name": "type",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["property", "vehicle", "investment", "international", "equity"]
+        },
+        {
+          "name": "equity_percentage",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "modality",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "contract_info",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "corporate_details",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
