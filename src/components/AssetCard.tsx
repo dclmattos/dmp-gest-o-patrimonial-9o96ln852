@@ -4,6 +4,7 @@ import { Trash2 } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { formatCurrency, convertValue, useCurrency } from '@/hooks/use-currency'
 import { EditAssetDialog } from '@/components/EditAssetDialog'
+import { AssetOwnerSelect } from '@/components/AssetOwnerSelect'
 import { getAssetCategories } from '@/lib/asset-utils'
 import {
   AlertDialog,
@@ -138,6 +139,7 @@ export function AssetCard({
         </p>
 
         <div className="mt-6 pt-4 border-t border-border/40 space-y-2">
+          <AssetOwnerSelect asset={asset} onUpdate={onUpdate} />
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">Valor de Base de Compra</span>
             <span className="font-medium">
