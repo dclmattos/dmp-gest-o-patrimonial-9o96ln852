@@ -189,6 +189,7 @@ export default function Index() {
         vehicle: 'Veículos',
         investment: 'Investimentos',
         international: 'Internacional',
+        equity: 'Participações Societárias',
       }
 
       const TYPE_COLORS: Record<string, string> = {
@@ -196,6 +197,7 @@ export default function Index() {
         vehicle: 'hsl(var(--chart-2))',
         investment: 'hsl(var(--chart-3))',
         international: 'hsl(var(--chart-4))',
+        equity: 'hsl(var(--chart-5))',
       }
 
       const TYPE_ORDER: Record<string, number> = {
@@ -203,6 +205,7 @@ export default function Index() {
         vehicle: 1,
         investment: 2,
         international: 3,
+        equity: 4,
       }
 
       const groups = new Map<
@@ -214,6 +217,9 @@ export default function Index() {
         const baseType = getAssetBaseType(a, assetTypes)
         const key = baseType || 'other'
         const name = TYPE_LABELS[baseType || ''] || a.subtype || 'Outros'
+        if (!TYPE_LABELS[baseType || '']) {
+          console.warn('Asset with unmapped base type:', a.id, a.type, a.subtype)
+        }
 
         const value = convertValue(a.current_valuation, a.currency, currency)
         const existing = groups.get(key)
@@ -563,6 +569,7 @@ export default function Index() {
               <SelectItem value="vehicle">Veículos</SelectItem>
               <SelectItem value="investment">Investimentos BR</SelectItem>
               <SelectItem value="international">Internacional</SelectItem>
+              <SelectItem value="equity">Participações Societárias</SelectItem>
             </SelectContent>
           </Select>
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>

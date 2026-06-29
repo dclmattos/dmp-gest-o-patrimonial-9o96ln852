@@ -50,6 +50,13 @@ export default function MyPortfolio() {
           .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0),
         color: 'hsl(var(--chart-4))',
       },
+      {
+        name: 'Participações Societárias',
+        value: assets
+          .filter((a) => a.type === 'equity')
+          .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0),
+        color: 'hsl(var(--chart-5))',
+      },
     ].filter((x) => x.value > 0)
   }, [assets, currency])
 
