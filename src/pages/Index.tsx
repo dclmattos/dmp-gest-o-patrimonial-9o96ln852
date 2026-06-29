@@ -183,49 +183,58 @@ export default function Index() {
 
   const allocation = useMemo(() => {
     if (selectedType === 'all') {
-      const legacyMapping: Record<string, string> = {
-        Imóveis: 'property',
-        Veículos: 'vehicle',
-        Investimentos: 'investment',
-        Internacional: 'international',
+      const TYPE_LABELS: Record<string, string> = {
+        property: 'Imóveis',
+        vehicle: 'Veículos',
+        investment: 'Investimentos',
+        international: 'Internacional',
       }
 
-      const mapped = assetTypes
-        .map((t, i) => {
-          const legacyType = legacyMapping[t.name]
-          const value = filteredAssets
-            .filter((a) => a.type_ref === t.id || (legacyType && a.type === legacyType))
-            .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0)
+      const groups = new Map<
+        string,
+        { id: string; name: string; icon: string; value: number; color: string; sort_order: number }
+      >()
 
-          return {
-            id: t.id,
-            name: t.name,
-            icon: t.icon,
-            value,
-            color: `hsl(var(--chart-${(i % 5) + 1}))`,
+      filteredAssets.forEach((a) => {
+        let key: string
+        let name: string
+        let icon = ''
+        let sortOrder = 0
+
+        if (a.type_ref) {
+          const customType = assetTypes.find((t) => t.id === a.type_ref)
+          if (customType) {
+            key = `ref_${a.type_ref}`
+            name = customType.name
+            icon = customType.icon || ''
+            sortOrder = customType.sort_order ?? 0
+          } else {
+            key = a.type || 'other'
+            name = TYPE_LABELS[a.type] || a.subtype || 'Outros'
           }
-        })
-        .filter((x) => x.value > 0)
+        } else {
+          key = a.type || 'other'
+          name = TYPE_LABELS[a.type] || a.subtype || a.type || 'Outros'
+        }
 
-      const unmatchedValue = filteredAssets
-        .filter((a) => {
-          if (a.type_ref) return false
-          const matchedLegacy = assetTypes.some((t) => legacyMapping[t.name] === a.type)
-          return !matchedLegacy
-        })
-        .reduce((s, a) => s + convertValue(a.current_valuation, a.currency, currency), 0)
+        const value = convertValue(a.current_valuation, a.currency, currency)
+        const existing = groups.get(key)
+        if (existing) {
+          existing.value += value
+        } else {
+          const idx = groups.size
+          groups.set(key, {
+            id: key,
+            name,
+            icon,
+            value,
+            color: `hsl(var(--chart-${(idx % 5) + 1}))`,
+            sort_order: sortOrder,
+          })
+        }
+      })
 
-      if (unmatchedValue > 0) {
-        mapped.push({
-          id: 'unmatched',
-          name: 'Outros',
-          icon: 'Box',
-          value: unmatchedValue,
-          color: 'hsl(var(--muted))',
-        })
-      }
-
-      return mapped
+      return Array.from(groups.values()).filter((x) => x.value > 0)
     } else {
       return categories
         .map((c, i) => ({
