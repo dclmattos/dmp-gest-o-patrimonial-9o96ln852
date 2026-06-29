@@ -27,6 +27,10 @@ export function ProtectedRoute() {
     return <Navigate to="/my-portfolio" replace />
   }
 
+  if (user?.role === 'user' && location.pathname === '/users') {
+    return <Navigate to="/my-portfolio" replace />
+  }
+
   if (user?.role === 'admin' && location.pathname === '/my-portfolio') {
     return <Navigate to="/" replace />
   }

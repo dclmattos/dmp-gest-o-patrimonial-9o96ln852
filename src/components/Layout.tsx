@@ -24,6 +24,7 @@ import {
   LogOut,
   Search,
   PieChart,
+  Users as UsersIcon,
   X,
   Loader2,
 } from 'lucide-react'
@@ -238,6 +239,16 @@ export default function Layout() {
                       className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
                     >
                       <FileText /> <span>Relatórios</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link
+                      to="/users"
+                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
+                    >
+                      <UsersIcon /> <span>Usuários</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
