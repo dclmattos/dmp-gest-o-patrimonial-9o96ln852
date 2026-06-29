@@ -56,3 +56,18 @@ export function assetMatchesType(asset: any, selectedType: string, assetTypes: a
   }
   return false
 }
+
+const BASE_TYPES = ['property', 'vehicle', 'investment', 'international']
+
+export function getAssetBaseType(asset: any, assetTypes: any[]): string | null {
+  if (asset.type && BASE_TYPES.includes(asset.type)) {
+    return asset.type
+  }
+  if (asset.type_ref) {
+    const customType = assetTypes.find((t) => t.id === asset.type_ref)
+    if (customType && LEGACY_TYPE_MAPPING[customType.name]) {
+      return LEGACY_TYPE_MAPPING[customType.name]
+    }
+  }
+  return asset.type || null
+}

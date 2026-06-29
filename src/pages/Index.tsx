@@ -52,6 +52,7 @@ import {
   assetHasAnyCategory,
   assetMatchesCategoryRecursive,
   assetMatchesType,
+  getAssetBaseType,
 } from '@/lib/asset-utils'
 
 export default function Index() {
@@ -190,51 +191,49 @@ export default function Index() {
         international: 'Internacional',
       }
 
+      const TYPE_COLORS: Record<string, string> = {
+        property: 'hsl(var(--chart-1))',
+        vehicle: 'hsl(var(--chart-2))',
+        investment: 'hsl(var(--chart-3))',
+        international: 'hsl(var(--chart-4))',
+      }
+
+      const TYPE_ORDER: Record<string, number> = {
+        property: 0,
+        vehicle: 1,
+        investment: 2,
+        international: 3,
+      }
+
       const groups = new Map<
         string,
         { id: string; name: string; icon: string; value: number; color: string; sort_order: number }
       >()
 
       filteredAssets.forEach((a) => {
-        let key: string
-        let name: string
-        let icon = ''
-        let sortOrder = 0
-
-        if (a.type_ref) {
-          const customType = assetTypes.find((t) => t.id === a.type_ref)
-          if (customType) {
-            key = `ref_${a.type_ref}`
-            name = customType.name
-            icon = customType.icon || ''
-            sortOrder = customType.sort_order ?? 0
-          } else {
-            key = a.type || 'other'
-            name = TYPE_LABELS[a.type] || a.subtype || 'Outros'
-          }
-        } else {
-          key = a.type || 'other'
-          name = TYPE_LABELS[a.type] || a.subtype || a.type || 'Outros'
-        }
+        const baseType = getAssetBaseType(a, assetTypes)
+        const key = baseType || 'other'
+        const name = TYPE_LABELS[baseType || ''] || a.subtype || 'Outros'
 
         const value = convertValue(a.current_valuation, a.currency, currency)
         const existing = groups.get(key)
         if (existing) {
           existing.value += value
         } else {
-          const idx = groups.size
           groups.set(key, {
             id: key,
             name,
-            icon,
+            icon: '',
             value,
-            color: `hsl(var(--chart-${(idx % 5) + 1}))`,
-            sort_order: sortOrder,
+            color: TYPE_COLORS[baseType || ''] || 'hsl(var(--chart-5))',
+            sort_order: TYPE_ORDER[baseType || ''] ?? 99,
           })
         }
       })
 
-      return Array.from(groups.values()).filter((x) => x.value > 0)
+      return Array.from(groups.values())
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .filter((x) => x.value > 0)
     } else {
       return categories
         .map((c, i) => ({
