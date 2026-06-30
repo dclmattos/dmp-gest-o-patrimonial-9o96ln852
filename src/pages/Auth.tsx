@@ -104,21 +104,21 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-8 bg-slate-950 text-slate-50 relative overflow-hidden">
       <img
-        src="https://img.usecurling.com/p/1920/1080?q=abstract%20minimalist%20architecture&color=black&dpr=2"
+        src="https://img.usecurling.com/p/1920/1080?q=luxury%20financial%20dark%20abstract&color=black&dpr=2"
         alt="Strategic Wealth Management"
-        className="absolute inset-0 w-full h-full object-cover z-0 opacity-40"
+        className="absolute inset-0 w-full h-full object-cover z-0 opacity-30"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent z-0" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/15 via-slate-950/50 to-slate-950/90 z-0" />
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-slate-950/40 z-0" />
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950/60 via-transparent to-slate-950 z-0" />
 
       {/* Brand Watermark */}
-      <div className="z-10 w-full max-w-md mb-8 sm:absolute sm:top-12 sm:left-12 sm:mb-0 sm:w-auto flex justify-center sm:justify-start pointer-events-none mix-blend-overlay opacity-80 animate-fade-in">
+      <div className="z-10 w-full max-w-md mb-8 sm:absolute sm:top-12 sm:left-12 sm:mb-0 sm:w-auto flex justify-center sm:justify-start pointer-events-none opacity-80 animate-fade-in">
         <div className="border border-white/20 p-5 sm:p-6 rounded-sm relative">
           <div className="absolute -top-px -left-px w-2 h-2 border-t border-l border-white/70" />
           <div className="absolute -top-px -right-px w-2 h-2 border-t border-r border-white/70" />
           <div className="absolute -bottom-px -left-px w-2 h-2 border-b border-l border-white/70" />
           <div className="absolute -bottom-px -right-px w-2 h-2 border-b border-r border-white/70" />
-          <h1 className="flex flex-col text-center sm:text-left font-serif text-white antialiased opacity-80 mix-blend-screen">
+          <h1 className="flex flex-col text-center sm:text-left font-serif text-white antialiased opacity-90">
             <span className="text-4xl sm:text-5xl font-bold tracking-[0.3em] leading-none mb-1 uppercase">
               DMP
             </span>
