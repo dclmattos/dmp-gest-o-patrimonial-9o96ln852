@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -20,11 +20,25 @@ import { Plus } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { createReceivable } from '@/services/receivables'
 import { useToast } from '@/hooks/use-toast'
+import pb from '@/lib/pocketbase/client'
 
 export function AddReceivableDialog({ assetId }: { assetId?: string }) {
   const [open, setOpen] = useState(false)
   const { user } = useAuth()
   const { toast } = useToast()
+
+  const [assetUserId, setAssetUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!assetId) {
+      setAssetUserId(null)
+      return
+    }
+    pb.collection('assets')
+      .getOne(assetId)
+      .then((asset) => setAssetUserId(asset.user || null))
+      .catch(() => setAssetUserId(null))
+  }, [assetId])
 
   const [source, setSource] = useState('')
   const [amount, setAmount] = useState('')
@@ -34,9 +48,11 @@ export function AddReceivableDialog({ assetId }: { assetId?: string }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
+    const targetUserId = assetId ? assetUserId : user.id
+    if (assetId && !targetUserId) return
     try {
       await createReceivable({
-        user: user.id,
+        user: targetUserId,
         source,
         amount: Number(amount),
         expected_date: expectedDate

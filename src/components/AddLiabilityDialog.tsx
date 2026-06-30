@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -14,11 +14,25 @@ import { Plus } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
 import { createLiability } from '@/services/liabilities'
 import { useToast } from '@/hooks/use-toast'
+import pb from '@/lib/pocketbase/client'
 
 export function AddLiabilityDialog({ assetId }: { assetId?: string }) {
   const [open, setOpen] = useState(false)
   const { user } = useAuth()
   const { toast } = useToast()
+
+  const [assetUserId, setAssetUserId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!assetId) {
+      setAssetUserId(null)
+      return
+    }
+    pb.collection('assets')
+      .getOne(assetId)
+      .then((asset) => setAssetUserId(asset.user || null))
+      .catch(() => setAssetUserId(null))
+  }, [assetId])
 
   const [name, setName] = useState('')
   const [totalValue, setTotalValue] = useState('')
@@ -36,6 +50,9 @@ export function AddLiabilityDialog({ assetId }: { assetId?: string }) {
     e.preventDefault()
     if (!user) return
 
+    const targetUserId = assetId ? assetUserId : user.id
+    if (assetId && !targetUserId) return
+
     if (hasEndDate && endDate && startDate && new Date(endDate) < new Date(startDate)) {
       toast({
         title: 'Data inválida',
@@ -47,7 +64,7 @@ export function AddLiabilityDialog({ assetId }: { assetId?: string }) {
 
     try {
       await createLiability({
-        user: user.id,
+        user: targetUserId,
         name,
         total_value: totalValue ? Number(totalValue) : null,
         remaining_balance: remainingBalance ? Number(remainingBalance) : Number(totalValue),
