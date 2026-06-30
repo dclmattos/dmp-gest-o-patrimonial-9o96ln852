@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import pb from '@/lib/pocketbase/client'
+import { requestOtp as requestOtpService, verifyOtp as verifyOtpService } from '@/services/otp'
 
 interface AuthContextType {
   user: any
@@ -7,6 +8,8 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => void
+  requestOtp: (email: string) => Promise<{ error: any }>
+  verifyOtp: (email: string, code: string) => Promise<{ error: any }>
   loading: boolean
 }
 
@@ -63,6 +66,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
+  const requestOtp = async (email: string) => {
+    try {
+      await requestOtpService(email)
+      return { error: null }
+    } catch (error) {
+      return { error }
+    }
+  }
+
+  const verifyOtp = async (email: string, code: string) => {
+    try {
+      const result = await verifyOtpService(email, code)
+      pb.authStore.save(result.token, result.record)
+      return { error: null }
+    } catch (error) {
+      return { error }
+    }
+  }
+
   const signOut = () => {
     pb.authStore.clear()
   }
@@ -75,6 +97,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         signUp,
         signIn,
         signOut,
+        requestOtp,
+        verifyOtp,
         loading,
       }}
     >
