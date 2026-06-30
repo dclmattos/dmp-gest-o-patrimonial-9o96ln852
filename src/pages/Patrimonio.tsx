@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useDashboardData } from '@/hooks/use-dashboard-data'
-import { useCurrency } from '@/hooks/use-currency'
+import { useCurrency, convertValue, formatCurrency } from '@/hooks/use-currency'
 import { useAuth } from '@/hooks/use-auth'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Download, Users } from 'lucide-react'
@@ -10,6 +10,7 @@ import { TypeManager } from '@/components/TypeManager'
 import { AssetDialog } from '@/components/AssetDialog'
 import { AssetCard } from '@/components/AssetCard'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { getAssetCategories } from '@/services/asset_categories'
 import { getAssetTypes } from '@/services/asset_types'
 import { deleteAsset } from '@/services/assets'
@@ -91,6 +92,10 @@ export default function Patrimonio() {
   const allAssets = assets.map((a) => localAssets[a.id] ?? a)
 
   const { currency } = useCurrency()
+  const totalWealth = allAssets.reduce(
+    (sum, a) => sum + convertValue(a.current_valuation || 0, a.currency, currency),
+    0,
+  )
   const [tab, setTab] = useState('all')
   const { toast } = useToast()
   const location = useLocation()
@@ -249,6 +254,20 @@ export default function Patrimonio() {
           )}
         </div>
       </div>
+
+      <Card className="shadow-subtle border-none bg-slate-950 text-slate-50">
+        <CardContent className="p-6 sm:p-8">
+          <p className="text-slate-400 font-medium tracking-widest uppercase text-xs mb-2">
+            Patrimônio Total
+          </p>
+          <h3 className="text-3xl sm:text-4xl font-serif font-medium tracking-tight text-white">
+            {formatCurrency(totalWealth, currency)}
+          </h3>
+          <p className="text-slate-400 text-sm mt-2">
+            {allAssets.length} {allAssets.length === 1 ? 'ativo' : 'ativos'} no cofre
+          </p>
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="all" value={tab} onValueChange={setTab}>
         <TabsList className="bg-muted/50 p-1 h-auto flex-wrap">

@@ -184,7 +184,7 @@ export default function Index() {
   )
 
   const isAllFiltered = selectedCategory === 'all' && selectedType === 'all'
-  const netWorth = isAllFiltered ? totalAssets - totalLiabilities : totalFilteredAssets
+  const netWorth = totalFilteredAssets
 
   const allocation = useMemo(() => {
     if (selectedType === 'all') {
@@ -364,31 +364,9 @@ export default function Index() {
         )
       })
 
-      let totalLiabilitiesValue = 0
-      if (isAllFiltered) {
-        filteredLiabilities.forEach((l) => {
-          const startDateStr = l.start_date || l.created?.substring(0, 10) || ''
-          const startMonth = startDateStr.substring(0, 7)
-          if (!startMonth || startMonth <= m) {
-            let balance = l.remaining_balance || 0
-            if (l.monthly_installment && m < currentMonthStr) {
-              const [currY, currM] = currentMonthStr.split('-').map(Number)
-              const [mY, mM] = m.split('-').map(Number)
-              const diff = (currY - mY) * 12 + (currM - mM)
-              balance += l.monthly_installment * diff
-
-              if (l.total_value && balance > l.total_value) {
-                balance = l.total_value
-              }
-            }
-            totalLiabilitiesValue += convertValue(balance, 'BRL', currency)
-          }
-        })
-      }
-
       return {
         date: m,
-        value: totalAssetsValue - totalLiabilitiesValue,
+        value: totalAssetsValue,
       }
     })
 
@@ -601,7 +579,7 @@ export default function Index() {
         </div>
         <div className="relative z-10">
           <p className="text-slate-400 font-medium tracking-widest uppercase text-xs mb-3">
-            {isAllFiltered ? 'Patrimônio Líquido Total' : 'Valor Filtrado'}
+            {isAllFiltered ? 'Patrimônio Total' : 'Valor Filtrado'}
           </p>
           <div className="flex flex-col sm:flex-row sm:items-baseline gap-4">
             <h1 className="text-5xl sm:text-7xl font-serif font-medium tracking-tight text-white">
@@ -730,7 +708,7 @@ export default function Index() {
             <CardHeader>
               <CardTitle className="font-serif text-xl">
                 {isAllFiltered
-                  ? 'Evolução do Patrimônio Líquido (6 Meses)'
+                  ? 'Evolução do Patrimônio Total (6 Meses)'
                   : 'Evolução Filtrada (6 Meses)'}
               </CardTitle>
             </CardHeader>
