@@ -88,8 +88,12 @@ export function AssetCard({
                   <Badge
                     key={cat.id}
                     variant="outline"
-                    className="flex items-center gap-1 border-border/50"
-                    style={{ color: cat.color }}
+                    className="flex items-center gap-1.5 border-border/50 transition-all duration-300 hover:scale-105"
+                    style={{
+                      color: cat.color,
+                      borderColor: `${cat.color}40`,
+                      backgroundColor: `${cat.color}10`,
+                    }}
                   >
                     {/* @ts-expect-error */}
                     <Icon size={12} style={{ color: cat.color }} />
