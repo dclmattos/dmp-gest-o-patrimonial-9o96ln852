@@ -27,6 +27,11 @@ export const deleteAssetCategory = async (id: string) => {
 }
 
 export const seedDefaultCategories = async (userId: string) => {
+  const existing = await pb.collection('asset_categories').getFullList({
+    filter: `user = "${userId}"`,
+  })
+  const existingNames = new Set(existing.map((c) => c.name))
+
   const defaults = [
     { name: 'Imóveis', color: '#3b82f6', icon: 'Home', sort_order: 1 },
     { name: 'Veículos', color: '#22c55e', icon: 'Car', sort_order: 2 },
@@ -35,13 +40,15 @@ export const seedDefaultCategories = async (userId: string) => {
   ]
 
   for (const d of defaults) {
-    await pb.collection('asset_categories').create({
-      user: userId,
-      name: d.name,
-      color: d.color,
-      icon: d.icon,
-      sort_order: d.sort_order,
-      goal_value: 0,
-    })
+    if (!existingNames.has(d.name)) {
+      await pb.collection('asset_categories').create({
+        user: userId,
+        name: d.name,
+        color: d.color,
+        icon: d.icon,
+        sort_order: d.sort_order,
+        goal_value: 0,
+      })
+    }
   }
 }

@@ -28,11 +28,12 @@ import { CategoryMultiSelect } from './CategoryMultiSelect'
 import { createReceivable } from '@/services/receivables'
 import { createLiability } from '@/services/liabilities'
 import { createAsset } from '@/services/assets'
-import { getAssetCategories } from '@/services/asset_categories'
+import { getAssetCategories, seedDefaultCategories } from '@/services/asset_categories'
 import { getAssetTypes } from '@/services/asset_types'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
+import { getSelectedUserId } from '@/stores/selectedUser'
 
 export function AssetDialog() {
   const [open, setOpen] = useState(false)
@@ -62,7 +63,11 @@ export function AssetDialog() {
 
   const loadData = async () => {
     try {
-      const [cats, ts] = await Promise.all([getAssetCategories(), getAssetTypes()])
+      const selectedUser = getSelectedUserId()
+      const [cats, ts] = await Promise.all([
+        getAssetCategories(selectedUser || undefined),
+        getAssetTypes(selectedUser || undefined),
+      ])
       setCategories(cats)
       setTypes(ts)
       if (ts.length > 0 && !typeRef) {
@@ -228,6 +233,13 @@ export function AssetDialog() {
                   categories={categories}
                   selected={categoryIds}
                   onChange={setCategoryIds}
+                  onLoadDefaults={async () => {
+                    const selectedUser = getSelectedUserId()
+                    if (selectedUser) {
+                      await seedDefaultCategories(selectedUser)
+                      loadData()
+                    }
+                  }}
                 />
               </div>
             </div>

@@ -319,6 +319,7 @@ export function EditAssetDialog({
                     const assetUserId =
                       typeof asset.user === 'string' ? asset.user : asset.user?.id || ''
                     await seedDefaultCategories(assetUserId)
+                    fetchCategoriesRef.current()
                   }}
                 />
               </div>

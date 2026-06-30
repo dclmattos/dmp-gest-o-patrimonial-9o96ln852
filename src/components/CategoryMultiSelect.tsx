@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { X, Tags, ChevronDown, Plus } from 'lucide-react'
 import * as Icons from 'lucide-react'
-import { sortAlphabetically } from '@/lib/sort-utils'
+import { buildHierarchicalList } from '@/lib/sort-utils'
 
 interface CategoryMultiSelectProps {
   categories: any[]
@@ -35,6 +35,15 @@ export function CategoryMultiSelect({
     onChange(selected.filter((s) => s !== id))
   }
 
+  const orderedItems = buildHierarchicalList(categories)
+
+  const getParentName = (catId: string): string | null => {
+    const cat = categories.find((c) => c.id === catId)
+    if (!cat || !cat.parent_id) return null
+    const parent = categories.find((c) => c.id === cat.parent_id)
+    return parent ? parent.name : null
+  }
+
   return (
     <div className="space-y-2">
       <Popover open={open} onOpenChange={setOpen}>
@@ -60,9 +69,12 @@ export function CategoryMultiSelect({
         >
           <ScrollArea className="max-h-[220px]">
             <div className="p-1">
-              {categories.length === 0 ? (
+              {orderedItems.length === 0 ? (
                 <div className="px-3 py-6 text-center space-y-3">
                   <p className="text-sm text-muted-foreground">Nenhuma categoria encontrada.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Abra o Gerenciador de Categorias para criar setores e categorias.
+                  </p>
                   {onLoadDefaults && (
                     <Button
                       type="button"
@@ -83,14 +95,15 @@ export function CategoryMultiSelect({
                   )}
                 </div>
               ) : (
-                sortAlphabetically(categories, 'name').map((cat) => {
+                orderedItems.map(({ category: cat, parentName, depth }) => {
                   const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
                   const isSelected = selected.includes(cat.id)
+                  const displayName = parentName ? `${parentName} › ${cat.name}` : cat.name
                   return (
                     <div
                       key={cat.id}
                       onClick={() => toggle(cat.id)}
-                      className="flex items-center gap-2 px-3 py-2 rounded-sm hover:bg-accent cursor-pointer transition-colors"
+                      className={`flex items-center gap-2 px-3 py-2 rounded-sm hover:bg-accent cursor-pointer transition-colors ${depth > 0 ? 'ml-4' : ''}`}
                     >
                       <Checkbox checked={isSelected} className="pointer-events-none" />
                       <div
@@ -100,7 +113,7 @@ export function CategoryMultiSelect({
                         {/* @ts-expect-error */}
                         <Icon size={14} />
                       </div>
-                      <span className="text-sm flex-1 truncate">{cat.name}</span>
+                      <span className="text-sm flex-1 truncate">{displayName}</span>
                       {cat.goal_value > 0 && (
                         <span className="text-xs text-muted-foreground shrink-0">
                           Meta:{' '}
@@ -124,7 +137,9 @@ export function CategoryMultiSelect({
           {selected.map((id) => {
             const cat = categories.find((c) => c.id === id)
             if (!cat) return null
+            const parentName = getParentName(id)
             const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
+            const displayName = parentName ? `${parentName} › ${cat.name}` : cat.name
             return (
               <Badge
                 key={id}
@@ -134,7 +149,7 @@ export function CategoryMultiSelect({
               >
                 {/* @ts-expect-error */}
                 <Icon size={12} style={{ color: cat.color }} />
-                <span>{cat.name}</span>
+                <span>{displayName}</span>
                 <button
                   type="button"
                   onClick={() => remove(id)}

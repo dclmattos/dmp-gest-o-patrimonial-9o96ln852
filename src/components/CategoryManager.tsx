@@ -26,7 +26,8 @@ import {
   updateAssetCategory,
 } from '@/services/asset_categories'
 import { useRealtime } from '@/hooks/use-realtime'
-import { sortAlphabetically } from '@/lib/sort-utils'
+import { sortAlphabetically, sortBySortOrderThenName } from '@/lib/sort-utils'
+import { getSelectedUserId } from '@/stores/selectedUser'
 
 const COLORS = [
   '#ef4444',
@@ -76,7 +77,8 @@ export function CategoryManager() {
 
   const loadCategories = async () => {
     try {
-      const data = await getAssetCategories()
+      const selectedUser = getSelectedUserId()
+      const data = await getAssetCategories(selectedUser || undefined)
       setCategories(data)
     } catch {
       /* intentionally ignored */
@@ -95,8 +97,9 @@ export function CategoryManager() {
       const goal = parseFloat(goalValue)
       const maxSortOrder =
         categories.length > 0 ? Math.max(...categories.map((c) => c.sort_order || 0)) : 0
+      const targetUser = getSelectedUserId() || user.id
       await createAssetCategory({
-        user: user.id,
+        user: targetUser,
         name,
         color,
         icon,
@@ -170,10 +173,7 @@ export function CategoryManager() {
 
   const renderCategory = (cat: any, index: number, depth: number = 0) => {
     const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
-    const children = sortAlphabetically(
-      categories.filter((c) => c.parent_id === cat.id),
-      'name',
-    )
+    const children = sortBySortOrderThenName(categories.filter((c) => c.parent_id === cat.id))
 
     return (
       <div key={cat.id} className="space-y-2">
@@ -222,10 +222,7 @@ export function CategoryManager() {
     )
   }
 
-  const rootCategories = sortAlphabetically(
-    categories.filter((c) => !c.parent_id),
-    'name',
-  )
+  const rootCategories = sortBySortOrderThenName(categories.filter((c) => !c.parent_id))
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -266,10 +263,7 @@ export function CategoryManager() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Nenhum (Raiz)</SelectItem>
-                      {sortAlphabetically(
-                        categories.filter((c) => !c.parent_id),
-                        'name',
-                      ).map((c) => (
+                      {sortBySortOrderThenName(categories.filter((c) => !c.parent_id)).map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.name}
                         </SelectItem>
