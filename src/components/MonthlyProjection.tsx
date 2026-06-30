@@ -105,8 +105,8 @@ export function MonthlyProjection({
   const overrideMap = useMemo(() => {
     const map = new Map<string, any>()
     overrides.forEach((o) => {
-      const monthDate = new Date(o.month)
-      const monthKey = format(monthDate, 'yyyy-MM')
+      const monthKey =
+        typeof o.month === 'string' ? o.month.substring(0, 7) : format(new Date(o.month), 'yyyy-MM')
       map.set(`${o.flow_type}:${o.flow_id}:${monthKey}`, o)
     })
     return map

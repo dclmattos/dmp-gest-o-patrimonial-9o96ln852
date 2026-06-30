@@ -58,7 +58,7 @@ export function QuickEditFlowDialog({
     try {
       const monthDate = month
         ? format(startOfMonth(month), 'yyyy-MM-dd')
-        : format(new Date(), 'yyyy-MM-dd')
+        : format(startOfMonth(new Date()), 'yyyy-MM-dd')
       const data = {
         user: record.user,
         flow_type: type,
