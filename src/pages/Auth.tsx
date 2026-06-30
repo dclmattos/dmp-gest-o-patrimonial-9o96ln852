@@ -124,10 +124,7 @@ export default function Auth() {
           <div className="absolute -bottom-px -right-px w-3 h-3 border-b border-r border-primary/60" />
           <div className="px-6 py-5">
             <h1 className="flex flex-col text-center sm:text-left font-sans text-white antialiased">
-              <span className="text-3xl sm:text-4xl font-light tracking-[0.4em] leading-none uppercase">
-                DMP
-              </span>
-              <span className="text-[0.65rem] sm:text-xs font-light tracking-[0.3em] uppercase mt-2 text-primary/80">
+              <span className="text-[0.65rem] sm:text-xs font-light tracking-[0.3em] uppercase text-primary/80">
                 Gestão Patrimonial
               </span>
             </h1>
@@ -333,7 +330,7 @@ export default function Auth() {
 
       <div className="z-10 absolute bottom-6 left-1/2 -translate-x-1/2 text-center pointer-events-none">
         <p className="text-[0.55rem] font-sans font-light text-neutral-700 tracking-[0.3em] uppercase">
-          DMP · Strategic Wealth Platform
+          Strategic Wealth Platform
         </p>
       </div>
     </div>
