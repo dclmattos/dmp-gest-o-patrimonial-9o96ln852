@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { X, Tags, ChevronDown } from 'lucide-react'
+import { X, Tags, ChevronDown, Plus } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { sortAlphabetically } from '@/lib/sort-utils'
 
@@ -12,9 +12,15 @@ interface CategoryMultiSelectProps {
   categories: any[]
   selected: string[]
   onChange: (ids: string[]) => void
+  onLoadDefaults?: () => Promise<void>
 }
 
-export function CategoryMultiSelect({ categories, selected, onChange }: CategoryMultiSelectProps) {
+export function CategoryMultiSelect({
+  categories,
+  selected,
+  onChange,
+  onLoadDefaults,
+}: CategoryMultiSelectProps) {
   const [open, setOpen] = useState(false)
 
   const toggle = (id: string) => {
@@ -55,8 +61,26 @@ export function CategoryMultiSelect({ categories, selected, onChange }: Category
           <ScrollArea className="max-h-[220px]">
             <div className="p-1">
               {categories.length === 0 ? (
-                <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-                  Nenhuma categoria disponível.
+                <div className="px-3 py-6 text-center space-y-3">
+                  <p className="text-sm text-muted-foreground">Nenhuma categoria encontrada.</p>
+                  {onLoadDefaults && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 mx-auto"
+                      onClick={async () => {
+                        try {
+                          await onLoadDefaults()
+                        } catch (e) {
+                          console.error(e)
+                        }
+                      }}
+                    >
+                      <Plus size={14} />
+                      Carregar Categorias Padrão
+                    </Button>
+                  )}
                 </div>
               ) : (
                 sortAlphabetically(categories, 'name').map((cat) => {

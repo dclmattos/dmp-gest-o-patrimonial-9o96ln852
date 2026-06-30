@@ -25,3 +25,23 @@ export const updateAssetCategory = async (id: string, data: any) => {
 export const deleteAssetCategory = async (id: string) => {
   return await pb.collection('asset_categories').delete(id)
 }
+
+export const seedDefaultCategories = async (userId: string) => {
+  const defaults = [
+    { name: 'Imóveis', color: '#3b82f6', icon: 'Home', sort_order: 1 },
+    { name: 'Veículos', color: '#22c55e', icon: 'Car', sort_order: 2 },
+    { name: 'Investimentos', color: '#f59e0b', icon: 'Briefcase', sort_order: 3 },
+    { name: 'Reserva de Emergência', color: '#ef4444', icon: 'PiggyBank', sort_order: 4 },
+  ]
+
+  for (const d of defaults) {
+    await pb.collection('asset_categories').create({
+      user: userId,
+      name: d.name,
+      color: d.color,
+      icon: d.icon,
+      sort_order: d.sort_order,
+      goal_value: 0,
+    })
+  }
+}

@@ -21,6 +21,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Pencil, ChevronDown } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { updateAsset } from '@/services/assets'
+import { getAssetCategories, seedDefaultCategories } from '@/services/asset_categories'
 import pb from '@/lib/pocketbase/client'
 import { useAuth } from '@/hooks/use-auth'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -55,6 +56,8 @@ export function EditAssetDialog({
   const [liabilities, setLiabilities] = useState<any[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const fetchLinkedRef = useRef<() => void>(() => {})
+  const [localCategories, setLocalCategories] = useState<any[]>(categories)
+  const fetchCategoriesRef = useRef<() => void>(() => {})
 
   const [name, setName] = useState(asset.name)
   const [typeRef, setTypeRef] = useState(asset.type_ref || '')
@@ -114,6 +117,19 @@ export function EditAssetDialog({
       }
       fetchLinkedRef.current = fetchLinked
       fetchLinked()
+
+      const assetUserId = typeof asset.user === 'string' ? asset.user : asset.user?.id || ''
+
+      const fetchCategories = async () => {
+        try {
+          const cats = await getAssetCategories(assetUserId)
+          setLocalCategories(cats)
+        } catch (e) {
+          console.error(e)
+        }
+      }
+      fetchCategoriesRef.current = fetchCategories
+      fetchCategories()
     }
   }, [open, asset])
 
@@ -129,6 +145,14 @@ export function EditAssetDialog({
     'liabilities',
     () => {
       if (open) fetchLinkedRef.current()
+    },
+    open,
+  )
+
+  useRealtime(
+    'asset_categories',
+    () => {
+      if (open) fetchCategoriesRef.current()
     },
     open,
   )
@@ -288,9 +312,14 @@ export function EditAssetDialog({
               <div className="space-y-2">
                 <Label>Categoria</Label>
                 <CategoryMultiSelect
-                  categories={categories}
+                  categories={localCategories}
                   selected={categoryIds}
                   onChange={setCategoryIds}
+                  onLoadDefaults={async () => {
+                    const assetUserId =
+                      typeof asset.user === 'string' ? asset.user : asset.user?.id || ''
+                    await seedDefaultCategories(assetUserId)
+                  }}
                 />
               </div>
             </div>
