@@ -393,6 +393,7 @@ export default function Fluxo() {
         currency={currency}
         onReorder={handleReorder}
         overrides={overrides}
+        assets={assets}
       />
 
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>

@@ -9,6 +9,7 @@ export interface FlowOverride {
   month: string
   amount: number | null
   is_done: boolean
+  description?: string
 }
 
 export const getFlowOverrides = async (userId?: string) => {

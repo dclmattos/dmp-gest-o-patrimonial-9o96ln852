@@ -1,38 +1,25 @@
-import { useMemo, useState } from 'react'
-import {
-  eachMonthOfInterval,
-  startOfMonth,
-  endOfMonth,
-  getYear,
-  getMonth,
-  isSameMonth,
-  addMonths,
-  format,
-} from 'date-fns'
+import { useState, useMemo } from 'react'
+import { addMonths, format, startOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency, convertValue } from '@/hooks/use-currency'
-import { Calendar as CalendarIcon, GripVertical } from 'lucide-react'
-import { Label } from '@/components/ui/label'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar } from '@/components/ui/calendar'
-import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { cn } from '@/lib/utils'
 import { QuickEditFlowDialog } from '@/components/QuickEditFlowDialog'
+import { CheckCircle2, ArrowUpRight, ArrowDownRight, GripVertical } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import {
+  findOverride,
+  getBaseDescription,
+  getBaseAmount,
+  shouldShowInMonth,
+} from '@/lib/flow-utils'
 
 interface MonthlyProjectionProps {
   receivables: any[]
   liabilities: any[]
-  currency: string
-  onReorder?: (type: 'receivable' | 'liability', draggedId: string, targetId: string) => void
-  overrides?: any[]
+  currency: any
+  onReorder: (type: 'receivable' | 'liability', draggedId: string, targetId: string) => void
+  overrides: any[]
+  assets: any[]
 }
 
 export function MonthlyProjection({
@@ -40,484 +27,163 @@ export function MonthlyProjection({
   liabilities,
   currency,
   onReorder,
-  overrides = [],
+  overrides,
+  assets,
 }: MonthlyProjectionProps) {
-  const [draggedItem, setDraggedItem] = useState<{ id: string; type: string } | null>(null)
-  const [dragOverItem, setDragOverItem] = useState<{ id: string; type: string } | null>(null)
-  const [quickEdit, setQuickEdit] = useState<{
+  const months = useMemo(() => {
+    const result: Date[] = []
+    const start = startOfMonth(new Date())
+    for (let i = 0; i < 12; i++) result.push(addMonths(start, i))
+    return result
+  }, [])
+
+  const [edit, setEdit] = useState<{
+    open: boolean
     type: 'receivable' | 'liability'
     record: any
     month: Date | null
-    override: any | null
-  } | null>(null)
+    override: any
+  }>({ open: false, type: 'receivable', record: null, month: null, override: null })
 
-  const handleDragStart = (e: React.DragEvent, id: string, type: 'receivable' | 'liability') => {
-    e.dataTransfer.setData('text/plain', JSON.stringify({ id, type }))
-    e.dataTransfer.effectAllowed = 'move'
-    setDraggedItem({ id, type })
+  const [draggedItem, setDraggedItem] = useState<{ type: string; id: string } | null>(null)
+
+  const openEdit = (type: 'receivable' | 'liability', record: any, month: Date) => {
+    const override = findOverride(overrides, record.id, type, month)
+    setEdit({ open: true, type, record, month, override })
   }
 
-  const handleDragOver = (e: React.DragEvent, id: string, type: 'receivable' | 'liability') => {
-    e.preventDefault()
-    e.dataTransfer.dropEffect = 'move'
-    if (draggedItem?.id !== id && draggedItem?.type === type) {
-      setDragOverItem({ id, type })
-    }
-  }
+  const renderRow = (record: any, type: 'receivable' | 'liability') => {
+    const desc = getBaseDescription(record, type, assets)
+    const hasAnyVisible = months.some((m) => shouldShowInMonth(record, type, m))
+    if (!hasAnyVisible) return null
 
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    setDragOverItem(null)
-  }
-
-  const handleDrop = (e: React.DragEvent, id: string, type: 'receivable' | 'liability') => {
-    e.preventDefault()
-    setDragOverItem(null)
-    setDraggedItem(null)
-    try {
-      const data = JSON.parse(e.dataTransfer.getData('text/plain'))
-      if (data.type !== type || data.id === id || !onReorder) return
-      onReorder(data.type, data.id, id)
-    } catch {
-      /* intentionally ignored */
-    }
-  }
-
-  const handleDragEnd = () => {
-    setDraggedItem(null)
-    setDragOverItem(null)
-  }
-
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>({
-    from: startOfMonth(new Date()),
-    to: endOfMonth(addMonths(new Date(), 5)),
-  })
-
-  const months = useMemo(() => {
-    if (!dateRange?.from || !dateRange?.to) return []
-    try {
-      return eachMonthOfInterval({ start: dateRange.from, end: dateRange.to })
-    } catch {
-      return []
-    }
-  }, [dateRange])
-
-  const overrideMap = useMemo(() => {
-    const map = new Map<string, any>()
-    overrides.forEach((o) => {
-      const monthKey =
-        typeof o.month === 'string' ? o.month.substring(0, 7) : format(new Date(o.month), 'yyyy-MM')
-      map.set(`${o.flow_type}:${o.flow_id}:${monthKey}`, o)
-    })
-    return map
-  }, [overrides])
-
-  const receivableMap = useMemo(() => {
-    const map = new Map<string, any>()
-    receivables.forEach((r) => map.set(r.id, r))
-    return map
-  }, [receivables])
-
-  const liabilityMap = useMemo(() => {
-    const map = new Map<string, any>()
-    liabilities.forEach((l) => map.set(l.id, l))
-    return map
-  }, [liabilities])
-
-  const projectionData = useMemo(() => {
-    const receivableRows = receivables.map((r) => {
-      const amount = convertValue(r.amount, 'BRL', currency)
-      const expected = r.expected_date ? new Date(r.expected_date) : null
-
-      const amounts = months.map((month) => {
-        const monthKey = format(month, 'yyyy-MM')
-        const override = overrideMap.get(`receivable:${r.id}:${monthKey}`)
-        if (override?.amount != null) return convertValue(override.amount, 'BRL', currency)
-
-        if (!expected) return 0
-        const monthEnd = endOfMonth(month)
-        let itemTotal = 0
-
-        if (r.frequency === 'one-time') {
-          if (isSameMonth(expected, month)) itemTotal = amount
-        } else {
-          if (expected <= monthEnd) {
-            const diffMonths =
-              (getYear(month) - getYear(expected)) * 12 + (getMonth(month) - getMonth(expected))
-            if (diffMonths >= 0) {
-              if (r.frequency === 'monthly') itemTotal = amount
-              else if (r.frequency === 'quarterly' && diffMonths % 3 === 0) itemTotal = amount
-              else if (r.frequency === 'yearly' && diffMonths % 12 === 0) itemTotal = amount
-            }
+    return (
+      <tr key={record.id} className="border-b border-border/30 hover:bg-muted/20">
+        <td className="sticky left-0 bg-background z-10 min-w-[200px] max-w-[250px] py-3 px-3">
+          <div className="flex items-center gap-2">
+            <button
+              draggable
+              onDragStart={() => setDraggedItem({ type, id: record.id })}
+              onDragEnd={() => setDraggedItem(null)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (draggedItem && draggedItem.id !== record.id) {
+                  onReorder(draggedItem.type as any, draggedItem.id, record.id)
+                }
+                setDraggedItem(null)
+              }}
+              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+            >
+              <GripVertical size={14} />
+            </button>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm truncate">{desc}</p>
+            </div>
+          </div>
+        </td>
+        {months.map((month) => {
+          if (!shouldShowInMonth(record, type, month)) {
+            return <td key={month.toISOString()} className="py-2 px-2 min-w-[110px]" />
           }
-        }
-        return itemTotal
-      })
-
-      const cellDone = months.map((month) => {
-        const monthKey = format(month, 'yyyy-MM')
-        const override = overrideMap.get(`receivable:${r.id}:${monthKey}`)
-        return override?.is_done || false
-      })
-
-      return { id: r.id, source: r.source, amounts, cellDone }
-    })
-
-    const liabilityRows = liabilities.map((l) => {
-      const amount = convertValue(
-        l.monthly_installment || l.remaining_balance || 0,
-        'BRL',
-        currency,
-      )
-      const start = l.start_date ? new Date(l.start_date) : l.due_date ? new Date(l.due_date) : null
-      const end = l.end_date ? new Date(l.end_date) : null
-
-      const amounts = months.map((month) => {
-        const monthKey = format(month, 'yyyy-MM')
-        const override = overrideMap.get(`liability:${l.id}:${monthKey}`)
-        if (override?.amount != null) return convertValue(override.amount, 'BRL', currency)
-
-        const monthStart = startOfMonth(month)
-        const monthEnd = endOfMonth(month)
-        let itemTotal = 0
-
-        if (l.is_recurring) {
-          if (start && start <= monthEnd && (!end || end >= monthStart)) itemTotal = amount
-        } else {
-          if (l.due_date) {
-            const due = new Date(l.due_date)
-            if (isSameMonth(due, month)) itemTotal = amount
-          } else if (l.start_date) {
-            const s = new Date(l.start_date)
-            if (isSameMonth(s, month)) itemTotal = amount
-          }
-        }
-        return itemTotal
-      })
-
-      const cellDone = months.map((month) => {
-        const monthKey = format(month, 'yyyy-MM')
-        const override = overrideMap.get(`liability:${l.id}:${monthKey}`)
-        return override?.is_done || false
-      })
-
-      return { id: l.id, name: l.name, amounts, cellDone }
-    })
-
-    const totals = months.map((_, i) => {
-      const totalIn = receivableRows.reduce((sum, r) => sum + r.amounts[i], 0)
-      const totalOut = liabilityRows.reduce((sum, l) => sum + l.amounts[i], 0)
-      return { totalIn, totalOut, balance: totalIn - totalOut }
-    })
-
-    let runningTotal = 0
-    const summary = totals.map((t) => {
-      runningTotal += t.balance
-      return { ...t, cumulative: runningTotal }
-    })
-
-    return { receivableRows, liabilityRows, summary }
-  }, [months, receivables, liabilities, currency, overrideMap])
-
-  const getCellOverride = (type: string, flowId: string, month: Date) => {
-    const monthKey = format(month, 'yyyy-MM')
-    return overrideMap.get(`${type}:${flowId}:${monthKey}`) || null
+          const override = findOverride(overrides, record.id, type, month)
+          const amount = override?.amount != null ? override.amount : getBaseAmount(record, type)
+          const isDone = override?.is_done || false
+          const hasDescOverride = !!override?.description
+          return (
+            <td key={month.toISOString()} className="py-2 px-2 min-w-[110px]">
+              <button
+                onClick={() => openEdit(type, record, month)}
+                className="w-full text-left p-1.5 rounded hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-1">
+                  <span
+                    className={cn(
+                      'text-sm font-medium',
+                      type === 'receivable' ? 'text-emerald-600' : 'text-rose-600',
+                    )}
+                  >
+                    {type === 'receivable' ? '+' : '-'}
+                    {formatCurrency(convertValue(amount, 'BRL', currency), currency)}
+                  </span>
+                  {isDone && <CheckCircle2 size={12} className="text-emerald-500 flex-shrink-0" />}
+                  {hasDescOverride && (
+                    <span
+                      className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"
+                      title="Descrição personalizada"
+                    />
+                  )}
+                </div>
+                {hasDescOverride && (
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">
+                    {override.description}
+                  </p>
+                )}
+              </button>
+            </td>
+          )
+        })}
+      </tr>
+    )
   }
 
   return (
-    <div className="mt-12 space-y-6 animate-fade-in-up">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
-        <div>
-          <h3 className="text-xl font-serif tracking-tight">Projeção Mensal</h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            Acompanhe o saldo projetado no período selecionado. Clique nos valores para editar.
-          </p>
-        </div>
-        <div className="w-full sm:w-auto">
-          <Label className="block mb-2 text-sm">Período da Projeção</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  'w-full sm:w-[280px] justify-start text-left font-normal bg-white dark:bg-slate-900',
-                  !dateRange && 'text-muted-foreground',
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange?.from ? (
-                  dateRange.to ? (
-                    <>
-                      {format(dateRange.from, 'dd/MM/yyyy')} - {format(dateRange.to, 'dd/MM/yyyy')}
-                    </>
-                  ) : (
-                    format(dateRange.from, 'dd/MM/yyyy')
-                  )
-                ) : (
-                  <span>Selecione o período</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={dateRange?.from}
-                selected={dateRange as any}
-                onSelect={(range) => setDateRange(range as any)}
-                numberOfMonths={2}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-
-      {months.length > 0 ? (
-        <div className="rounded-md border border-border/50 shadow-elevation bg-white dark:bg-slate-900 overflow-x-auto relative">
-          <Table className="min-w-max">
-            <TableHeader className="bg-muted/50">
-              <TableRow>
-                <TableHead className="w-[200px] sticky left-0 bg-muted/50 z-20 whitespace-nowrap border-r border-border/40">
-                  Descrição
-                </TableHead>
-                {months.map((month, i) => (
-                  <TableHead
-                    key={i}
-                    className="text-right min-w-[120px] whitespace-nowrap capitalize"
-                  >
-                    {format(month, 'MMM/yyyy', { locale: ptBR })}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {projectionData.receivableRows.length > 0 && (
-                <>
-                  <TableRow className="bg-emerald-50/50 dark:bg-emerald-950/20 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20">
-                    <TableCell
-                      colSpan={months.length + 1}
-                      className="font-semibold text-emerald-700 dark:text-emerald-400 sticky left-0 z-10 border-r border-border/40"
+    <>
+      <Card className="border border-border/50 shadow-elevation bg-white dark:bg-slate-900 overflow-hidden">
+        <CardHeader className="border-b border-border/40 pb-5">
+          <CardTitle className="font-serif text-xl">Projeção Mensal</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/40">
+                  <th className="sticky left-0 bg-background z-10 text-left py-3 px-3 min-w-[200px] font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                    Item
+                  </th>
+                  {months.map((m) => (
+                    <th
+                      key={m.toISOString()}
+                      className="py-3 px-2 text-center min-w-[110px] text-muted-foreground font-medium text-xs capitalize"
                     >
-                      Entradas
-                    </TableCell>
-                  </TableRow>
-                  {projectionData.receivableRows.map((r) => {
-                    const original = receivableMap.get(r.id)
-                    return (
-                      <TableRow
-                        key={r.id}
-                        draggable={!!onReorder}
-                        onDragStart={(e) => handleDragStart(e, r.id, 'receivable')}
-                        onDragOver={(e) => handleDragOver(e, r.id, 'receivable')}
-                        onDragLeave={handleDragLeave}
-                        onDrop={(e) => handleDrop(e, r.id, 'receivable')}
-                        onDragEnd={handleDragEnd}
-                        className={cn(
-                          onReorder && 'cursor-move transition-colors',
-                          draggedItem?.id === r.id && 'opacity-50',
-                          dragOverItem?.id === r.id &&
-                            dragOverItem?.type === 'receivable' &&
-                            'bg-emerald-100/50 dark:bg-emerald-900/40',
-                        )}
-                      >
-                        <TableCell className="sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-border/40 pl-2 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            {onReorder && (
-                              <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
-                            )}
-                            <span className={cn(!onReorder && 'ml-4')}>{r.source}</span>
-                          </div>
-                        </TableCell>
-                        {r.amounts.map((amt, i) => {
-                          const isCellDone = r.cellDone[i]
-                          const cellOverride = getCellOverride('receivable', r.id, months[i])
-                          return (
-                            <TableCell
-                              key={i}
-                              className={cn(
-                                'text-right whitespace-nowrap p-0',
-                                isCellDone
-                                  ? 'bg-green-100 dark:bg-green-500/20'
-                                  : 'hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20',
-                              )}
-                            >
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setQuickEdit({
-                                    type: 'receivable',
-                                    record: original,
-                                    month: months[i],
-                                    override: cellOverride,
-                                  })
-                                }
-                                className={cn(
-                                  'w-full h-full px-4 py-2 text-right cursor-pointer transition-colors rounded-none',
-                                  amt > 0 ? 'text-emerald-600' : 'text-muted-foreground',
-                                  isCellDone
-                                    ? 'hover:bg-green-200 dark:hover:bg-green-500/30'
-                                    : 'hover:bg-emerald-50 dark:hover:bg-emerald-950/30',
-                                )}
-                              >
-                                {amt > 0 ? formatCurrency(amt, currency) : '—'}
-                              </button>
-                            </TableCell>
-                          )
-                        })}
-                      </TableRow>
-                    )
-                  })}
-                </>
-              )}
-
-              {projectionData.liabilityRows.length > 0 && (
-                <>
-                  <TableRow className="bg-rose-50/50 dark:bg-rose-950/20 hover:bg-rose-50/50 dark:hover:bg-rose-950/20">
-                    <TableCell
-                      colSpan={months.length + 1}
-                      className="font-semibold text-rose-700 dark:text-rose-400 sticky left-0 z-10 border-r border-border/40"
-                    >
-                      Saídas / Obrigações
-                    </TableCell>
-                  </TableRow>
-                  {projectionData.liabilityRows.map((l) => {
-                    const original = liabilityMap.get(l.id)
-                    return (
-                      <TableRow
-                        key={l.id}
-                        draggable={!!onReorder}
-                        onDragStart={(e) => handleDragStart(e, l.id, 'liability')}
-                        onDragOver={(e) => handleDragOver(e, l.id, 'liability')}
-                        onDragLeave={handleDragLeave}
-                        onDrop={(e) => handleDrop(e, l.id, 'liability')}
-                        onDragEnd={handleDragEnd}
-                        className={cn(
-                          onReorder && 'cursor-move transition-colors',
-                          draggedItem?.id === l.id && 'opacity-50',
-                          dragOverItem?.id === l.id &&
-                            dragOverItem?.type === 'liability' &&
-                            'bg-rose-100/50 dark:bg-rose-900/40',
-                        )}
-                      >
-                        <TableCell className="sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-border/40 pl-2 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            {onReorder && (
-                              <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
-                            )}
-                            <span className={cn(!onReorder && 'ml-4')}>{l.name}</span>
-                          </div>
-                        </TableCell>
-                        {l.amounts.map((amt, i) => {
-                          const isCellDone = l.cellDone[i]
-                          const cellOverride = getCellOverride('liability', l.id, months[i])
-                          return (
-                            <TableCell
-                              key={i}
-                              className={cn(
-                                'text-right whitespace-nowrap p-0',
-                                isCellDone
-                                  ? 'bg-green-100 dark:bg-green-500/20'
-                                  : 'hover:bg-rose-50/50 dark:hover:bg-rose-950/20',
-                              )}
-                            >
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setQuickEdit({
-                                    type: 'liability',
-                                    record: original,
-                                    month: months[i],
-                                    override: cellOverride,
-                                  })
-                                }
-                                className={cn(
-                                  'w-full h-full px-4 py-2 text-right cursor-pointer transition-colors rounded-none',
-                                  amt > 0 ? 'text-rose-600' : 'text-muted-foreground',
-                                  isCellDone
-                                    ? 'hover:bg-green-200 dark:hover:bg-green-500/30'
-                                    : 'hover:bg-rose-50 dark:hover:bg-rose-950/30',
-                                )}
-                              >
-                                {amt > 0 ? `-${formatCurrency(amt, currency)}` : '—'}
-                              </button>
-                            </TableCell>
-                          )
-                        })}
-                      </TableRow>
-                    )
-                  })}
-                </>
-              )}
-
-              <TableRow className="bg-muted/10 hover:bg-muted/10">
-                <TableCell className="font-medium sticky left-0 bg-muted/10 z-10 border-r border-border/40 whitespace-nowrap">
-                  Total Entradas
-                </TableCell>
-                {projectionData.summary.map((s, i) => (
-                  <TableCell key={i} className="text-right text-emerald-600 whitespace-nowrap">
-                    {formatCurrency(s.totalIn, currency)}
-                  </TableCell>
-                ))}
-              </TableRow>
-              <TableRow className="bg-muted/10 hover:bg-muted/10">
-                <TableCell className="font-medium sticky left-0 bg-muted/10 z-10 border-r border-border/40 whitespace-nowrap">
-                  Total Saídas
-                </TableCell>
-                {projectionData.summary.map((s, i) => (
-                  <TableCell key={i} className="text-right text-rose-600 whitespace-nowrap">
-                    -{formatCurrency(s.totalOut, currency)}
-                  </TableCell>
-                ))}
-              </TableRow>
-              <TableRow className="bg-muted/20 hover:bg-muted/20 border-t-2 border-border">
-                <TableCell className="font-bold sticky left-0 bg-muted/20 z-10 border-r border-border/40 whitespace-nowrap">
-                  Saldo Mensal
-                </TableCell>
-                {projectionData.summary.map((s, i) => (
-                  <TableCell
-                    key={i}
-                    className={`text-right font-bold whitespace-nowrap ${
-                      s.balance >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                    }`}
-                  >
-                    {s.balance >= 0 && s.balance > 0 ? '+' : ''}
-                    {formatCurrency(s.balance, currency)}
-                  </TableCell>
-                ))}
-              </TableRow>
-              <TableRow className="bg-muted/20 hover:bg-muted/20">
-                <TableCell className="font-bold sticky left-0 bg-muted/20 z-10 border-r border-border/40 whitespace-nowrap">
-                  Saldo Acumulado
-                </TableCell>
-                {projectionData.summary.map((s, i) => (
-                  <TableCell
-                    key={i}
-                    className={`text-right font-bold whitespace-nowrap ${
-                      s.cumulative >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                    }`}
-                  >
-                    {s.cumulative >= 0 && s.cumulative > 0 ? '+' : ''}
-                    {formatCurrency(s.cumulative, currency)}
-                  </TableCell>
-                ))}
-              </TableRow>
-            </TableBody>
-          </Table>
-        </div>
-      ) : (
-        <div className="p-8 text-center text-muted-foreground border border-border/50 rounded-md bg-white dark:bg-slate-900">
-          Selecione um período válido para visualizar a projeção.
-        </div>
-      )}
-
+                      {format(m, 'MMM/yy', { locale: ptBR })}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {receivables.length > 0 && (
+                  <tr className="border-b border-border/40 bg-emerald-50/30 dark:bg-emerald-950/10">
+                    <td colSpan={months.length + 1} className="py-2 px-3">
+                      <span className="flex items-center gap-2 text-emerald-600 font-medium text-xs uppercase tracking-wide">
+                        <ArrowUpRight size={14} /> Entradas
+                      </span>
+                    </td>
+                  </tr>
+                )}
+                {receivables.map((r) => renderRow(r, 'receivable'))}
+                {liabilities.length > 0 && (
+                  <tr className="border-b border-border/40 bg-rose-50/30 dark:bg-rose-950/10">
+                    <td colSpan={months.length + 1} className="py-2 px-3">
+                      <span className="flex items-center gap-2 text-rose-600 font-medium text-xs uppercase tracking-wide">
+                        <ArrowDownRight size={14} /> Saídas
+                      </span>
+                    </td>
+                  </tr>
+                )}
+                {liabilities.map((l) => renderRow(l, 'liability'))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
       <QuickEditFlowDialog
-        open={!!quickEdit}
-        onOpenChange={(open) => !open && setQuickEdit(null)}
-        type={quickEdit?.type ?? 'receivable'}
-        record={quickEdit?.record}
-        month={quickEdit?.month ?? null}
-        existingOverride={quickEdit?.override ?? null}
+        open={edit.open}
+        onOpenChange={(open) => setEdit((prev) => ({ ...prev, open }))}
+        type={edit.type}
+        record={edit.record}
+        month={edit.month}
+        existingOverride={edit.override}
       />
-    </div>
+    </>
   )
 }

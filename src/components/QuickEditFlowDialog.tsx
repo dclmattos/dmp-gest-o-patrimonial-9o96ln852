@@ -38,6 +38,7 @@ export function QuickEditFlowDialog({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [amount, setAmount] = useState('')
   const [isDone, setIsDone] = useState(false)
+  const [description, setDescription] = useState('')
 
   useEffect(() => {
     if (open && record) {
@@ -48,6 +49,7 @@ export function QuickEditFlowDialog({
       const currentAmount = existingOverride?.amount != null ? existingOverride.amount : baseAmount
       setAmount(currentAmount ? currentAmount.toString() : '')
       setIsDone(existingOverride?.is_done || false)
+      setDescription(existingOverride?.description || '')
       setFieldErrors({})
     }
   }, [open, record, type, existingOverride])
@@ -66,6 +68,7 @@ export function QuickEditFlowDialog({
         month: monthDate,
         amount: Number(amount),
         is_done: isDone,
+        description: description.trim(),
       }
       if (existingOverride) {
         await updateFlowOverride(existingOverride.id, data)
@@ -111,6 +114,17 @@ export function QuickEditFlowDialog({
               placeholder="0.00"
             />
             {fieldErrors.amount && <p className="text-sm text-red-500">{fieldErrors.amount}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label>Descrição</Label>
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Descrição personalizada para este mês"
+            />
+            {fieldErrors.description && (
+              <p className="text-sm text-red-500">{fieldErrors.description}</p>
+            )}
           </div>
           <div className="flex items-center justify-between p-3 border rounded-lg dark:border-slate-800">
             <div className="space-y-0.5">
