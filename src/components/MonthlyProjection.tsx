@@ -1,26 +1,18 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { addMonths, format, startOfMonth } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatCurrency, convertValue } from '@/hooks/use-currency'
-import { QuickEditFlowDialog } from '@/components/QuickEditFlowDialog'
-import { CheckCircle2, ArrowUpRight, ArrowDownRight, GripVertical } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import {
   findOverride,
-  getBaseDescription,
   getBaseAmount,
+  getDisplayDescription,
   shouldShowInMonth,
 } from '@/lib/flow-utils'
+import { QuickEditFlowDialog } from '@/components/QuickEditFlowDialog'
+import { ArrowUpRight, ArrowDownRight, CheckCircle2, GripVertical } from 'lucide-react'
 
-interface MonthlyProjectionProps {
-  receivables: any[]
-  liabilities: any[]
-  currency: any
-  onReorder: (type: 'receivable' | 'liability', draggedId: string, targetId: string) => void
-  overrides: any[]
-  assets: any[]
-}
+const MONTH_COUNT = 6
 
 export function MonthlyProjection({
   receivables,
@@ -29,161 +21,227 @@ export function MonthlyProjection({
   onReorder,
   overrides,
   assets,
-}: MonthlyProjectionProps) {
-  const months = useMemo(() => {
-    const result: Date[] = []
-    const start = startOfMonth(new Date())
-    for (let i = 0; i < 12; i++) result.push(addMonths(start, i))
-    return result
-  }, [])
-
-  const [edit, setEdit] = useState<{
-    open: boolean
+  readOnly = false,
+}: {
+  receivables: any[]
+  liabilities: any[]
+  currency: string
+  onReorder?: (type: 'receivable' | 'liability', draggedId: string, targetId: string) => void
+  overrides: any[]
+  assets: any[]
+  readOnly?: boolean
+}) {
+  const months = Array.from({ length: MONTH_COUNT }, (_, i) =>
+    startOfMonth(addMonths(new Date(), i)),
+  )
+  const [quickEdit, setQuickEdit] = useState<{
     type: 'receivable' | 'liability'
     record: any
-    month: Date | null
-    override: any
-  }>({ open: false, type: 'receivable', record: null, month: null, override: null })
+    month: Date
+    override: any | null
+  } | null>(null)
+  const [draggedItem, setDraggedItem] = useState<{
+    type: 'receivable' | 'liability'
+    id: string
+  } | null>(null)
 
-  const [draggedItem, setDraggedItem] = useState<{ type: string; id: string } | null>(null)
-
-  const openEdit = (type: 'receivable' | 'liability', record: any, month: Date) => {
+  const getAmountForMonth = (
+    record: any,
+    type: 'receivable' | 'liability',
+    month: Date,
+  ): number | null => {
+    if (!shouldShowInMonth(record, type, month)) return null
     const override = findOverride(overrides, record.id, type, month)
-    setEdit({ open: true, type, record, month, override })
+    if (override?.amount != null) return override.amount
+    return getBaseAmount(record, type)
+  }
+
+  const isDone = (record: any, type: 'receivable' | 'liability', month: Date): boolean => {
+    const override = findOverride(overrides, record.id, type, month)
+    return override?.is_done || false
+  }
+
+  const handleCellClick = (record: any, type: 'receivable' | 'liability', month: Date) => {
+    if (readOnly) return
+    const override = findOverride(overrides, record.id, type, month)
+    setQuickEdit({ type, record, month, override })
+  }
+
+  const handleDragStart = (type: 'receivable' | 'liability', id: string) => {
+    if (readOnly || !onReorder) return
+    setDraggedItem({ type, id })
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    if (readOnly || !onReorder) return
+    e.preventDefault()
+  }
+
+  const handleDrop = (type: 'receivable' | 'liability', targetId: string) => {
+    if (readOnly || !onReorder || !draggedItem) return
+    if (draggedItem.type === type && draggedItem.id !== targetId) {
+      onReorder(type, draggedItem.id, targetId)
+    }
+    setDraggedItem(null)
   }
 
   const renderRow = (record: any, type: 'receivable' | 'liability') => {
-    const desc = getBaseDescription(record, type, assets)
-    const hasAnyVisible = months.some((m) => shouldShowInMonth(record, type, m))
-    if (!hasAnyVisible) return null
+    const description = getDisplayDescription(record, type, null, assets)
+    const amounts = months.map((m) => getAmountForMonth(record, type, m))
+    const total = amounts.reduce((sum, a) => sum + (a || 0), 0)
 
     return (
-      <tr key={record.id} className="border-b border-border/30 hover:bg-muted/20">
-        <td className="sticky left-0 bg-background z-10 min-w-[200px] max-w-[250px] py-3 px-3">
+      <tr
+        key={record.id}
+        draggable={!readOnly && !!onReorder}
+        onDragStart={() => handleDragStart(type, record.id)}
+        onDragOver={handleDragOver}
+        onDrop={() => handleDrop(type, record.id)}
+        className="border-b border-border/40 hover:bg-muted/30 transition-colors"
+      >
+        <td className="py-3 px-4">
           <div className="flex items-center gap-2">
-            <button
-              draggable
-              onDragStart={() => setDraggedItem({ type, id: record.id })}
-              onDragEnd={() => setDraggedItem(null)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={() => {
-                if (draggedItem && draggedItem.id !== record.id) {
-                  onReorder(draggedItem.type as any, draggedItem.id, record.id)
-                }
-                setDraggedItem(null)
-              }}
-              className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
-            >
-              <GripVertical size={14} />
-            </button>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm truncate">{desc}</p>
-            </div>
+            {!readOnly && onReorder && (
+              <GripVertical size={14} className="text-muted-foreground cursor-grab shrink-0" />
+            )}
+            <span className="text-sm font-medium truncate">{description}</span>
           </div>
         </td>
-        {months.map((month) => {
-          if (!shouldShowInMonth(record, type, month)) {
-            return <td key={month.toISOString()} className="py-2 px-2 min-w-[110px]" />
+        {months.map((m, i) => {
+          const amount = amounts[i]
+          const done = isDone(record, type, m)
+          if (amount === null) {
+            return (
+              <td key={i} className="py-3 px-4 text-center text-muted-foreground/30">
+                —
+              </td>
+            )
           }
-          const override = findOverride(overrides, record.id, type, month)
-          const amount = override?.amount != null ? override.amount : getBaseAmount(record, type)
-          const isDone = override?.is_done || false
-          const hasDescOverride = !!override?.description
           return (
-            <td key={month.toISOString()} className="py-2 px-2 min-w-[110px]">
-              <button
-                onClick={() => openEdit(type, record, month)}
-                className="w-full text-left p-1.5 rounded hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-1">
-                  <span
-                    className={cn(
-                      'text-sm font-medium',
-                      type === 'receivable' ? 'text-emerald-600' : 'text-rose-600',
-                    )}
-                  >
-                    {type === 'receivable' ? '+' : '-'}
-                    {formatCurrency(convertValue(amount, 'BRL', currency), currency)}
-                  </span>
-                  {isDone && <CheckCircle2 size={12} className="text-emerald-500 flex-shrink-0" />}
-                  {hasDescOverride && (
-                    <span
-                      className="w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"
-                      title="Descrição personalizada"
-                    />
-                  )}
-                </div>
-                {hasDescOverride && (
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">
-                    {override.description}
-                  </p>
-                )}
-              </button>
+            <td
+              key={i}
+              className={`py-3 px-4 text-center ${readOnly ? '' : 'cursor-pointer'} ${done ? 'opacity-50' : ''}`}
+              onClick={() => handleCellClick(record, type, m)}
+            >
+              <div className="flex items-center justify-center gap-1">
+                {done && <CheckCircle2 size={12} className="text-emerald-500" />}
+                <span
+                  className={`text-sm ${type === 'receivable' ? 'text-emerald-600' : 'text-rose-600'}`}
+                >
+                  {type === 'receivable' ? '+' : '-'}
+                  {formatCurrency(convertValue(amount, 'BRL', currency), currency)}
+                </span>
+              </div>
             </td>
           )
         })}
+        <td className="py-3 px-4 text-center font-medium">
+          {formatCurrency(convertValue(total, 'BRL', currency), currency)}
+        </td>
       </tr>
     )
   }
 
+  const monthlyTotals = months.map((m) => {
+    const recTotal = receivables.reduce(
+      (sum, r) => sum + (getAmountForMonth(r, 'receivable', m) || 0),
+      0,
+    )
+    const liabTotal = liabilities.reduce(
+      (sum, l) => sum + (getAmountForMonth(l, 'liability', m) || 0),
+      0,
+    )
+    return recTotal - liabTotal
+  })
+
   return (
-    <>
-      <Card className="border border-border/50 shadow-elevation bg-white dark:bg-slate-900 overflow-hidden">
-        <CardHeader className="border-b border-border/40 pb-5">
-          <CardTitle className="font-serif text-xl">Projeção Mensal</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border/40">
-                  <th className="sticky left-0 bg-background z-10 text-left py-3 px-3 min-w-[200px] font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                    Item
-                  </th>
-                  {months.map((m) => (
-                    <th
-                      key={m.toISOString()}
-                      className="py-3 px-2 text-center min-w-[110px] text-muted-foreground font-medium text-xs capitalize"
-                    >
-                      {format(m, 'MMM/yy', { locale: ptBR })}
-                    </th>
-                  ))}
+    <Card className="border border-border/50 shadow-elevation overflow-hidden">
+      <CardHeader className="border-b border-border/40">
+        <CardTitle className="font-serif text-xl">Projeção Mensal</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0 overflow-x-auto">
+        <table className="w-full min-w-[800px]">
+          <thead>
+            <tr className="border-b border-border/40 bg-muted/30">
+              <th className="py-3 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Descrição
+              </th>
+              {months.map((m, i) => (
+                <th
+                  key={i}
+                  className="py-3 px-4 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                >
+                  {format(m, 'MMM/yyyy', { locale: ptBR })}
+                </th>
+              ))}
+              <th className="py-3 px-4 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Total
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {receivables.length > 0 && (
+              <>
+                <tr className="border-b border-border/40 bg-emerald-50/30 dark:bg-emerald-950/10">
+                  <td colSpan={MONTH_COUNT + 2} className="py-2 px-4">
+                    <span className="text-xs font-medium text-emerald-600 flex items-center gap-1 uppercase tracking-wide">
+                      <ArrowUpRight size={14} /> Entradas
+                    </span>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {receivables.length > 0 && (
-                  <tr className="border-b border-border/40 bg-emerald-50/30 dark:bg-emerald-950/10">
-                    <td colSpan={months.length + 1} className="py-2 px-3">
-                      <span className="flex items-center gap-2 text-emerald-600 font-medium text-xs uppercase tracking-wide">
-                        <ArrowUpRight size={14} /> Entradas
-                      </span>
-                    </td>
-                  </tr>
-                )}
                 {receivables.map((r) => renderRow(r, 'receivable'))}
-                {liabilities.length > 0 && (
-                  <tr className="border-b border-border/40 bg-rose-50/30 dark:bg-rose-950/10">
-                    <td colSpan={months.length + 1} className="py-2 px-3">
-                      <span className="flex items-center gap-2 text-rose-600 font-medium text-xs uppercase tracking-wide">
-                        <ArrowDownRight size={14} /> Saídas
-                      </span>
-                    </td>
-                  </tr>
-                )}
+              </>
+            )}
+            {liabilities.length > 0 && (
+              <>
+                <tr className="border-b border-border/40 bg-rose-50/30 dark:bg-rose-950/10">
+                  <td colSpan={MONTH_COUNT + 2} className="py-2 px-4">
+                    <span className="text-xs font-medium text-rose-600 flex items-center gap-1 uppercase tracking-wide">
+                      <ArrowDownRight size={14} /> Saídas
+                    </span>
+                  </td>
+                </tr>
                 {liabilities.map((l) => renderRow(l, 'liability'))}
-              </tbody>
-            </table>
+              </>
+            )}
+            <tr className="border-t-2 border-border/60 bg-muted/20 font-medium">
+              <td className="py-3 px-4 text-sm">Saldo Mensal</td>
+              {monthlyTotals.map((total, i) => (
+                <td key={i} className="py-3 px-4 text-center text-sm">
+                  <span className={total >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
+                    {formatCurrency(convertValue(total, 'BRL', currency), currency)}
+                  </span>
+                </td>
+              ))}
+              <td className="py-3 px-4 text-center text-sm font-bold">
+                {formatCurrency(
+                  convertValue(
+                    monthlyTotals.reduce((a, b) => a + b, 0),
+                    'BRL',
+                    currency,
+                  ),
+                  currency,
+                )}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        {receivables.length === 0 && liabilities.length === 0 && (
+          <div className="p-8 text-center text-muted-foreground">
+            Nenhum fluxo cadastrado para projeção.
           </div>
-        </CardContent>
-      </Card>
-      <QuickEditFlowDialog
-        open={edit.open}
-        onOpenChange={(open) => setEdit((prev) => ({ ...prev, open }))}
-        type={edit.type}
-        record={edit.record}
-        month={edit.month}
-        existingOverride={edit.override}
-      />
-    </>
+        )}
+      </CardContent>
+      {!readOnly && quickEdit && (
+        <QuickEditFlowDialog
+          open={!!quickEdit}
+          onOpenChange={(open) => !open && setQuickEdit(null)}
+          type={quickEdit.type}
+          record={quickEdit.record}
+          month={quickEdit.month}
+          existingOverride={quickEdit.override}
+        />
+      )}
+    </Card>
   )
 }

@@ -232,17 +232,21 @@ export default function Patrimonio() {
               </SelectContent>
             </Select>
           )}
-          <Button
-            variant="outline"
-            onClick={handleExport}
-            className="gap-2 shadow-subtle hover:border-primary/30 transition-all"
-          >
-            <Download size={16} />
-            <span className="hidden sm:inline">Exportar Dados</span>
-          </Button>
-          <TypeManager />
-          <CategoryManager />
-          <AssetDialog />
+          {isAdmin && (
+            <>
+              <Button
+                variant="outline"
+                onClick={handleExport}
+                className="gap-2 shadow-subtle hover:border-primary/30 transition-all"
+              >
+                <Download size={16} />
+                <span className="hidden sm:inline">Exportar Dados</span>
+              </Button>
+              <TypeManager />
+              <CategoryManager />
+              <AssetDialog />
+            </>
+          )}
         </div>
       </div>
 
@@ -278,6 +282,7 @@ export default function Patrimonio() {
                   liabilities={liabilities}
                   onDelete={handleDeleteAsset}
                   onUpdate={handleUpdateAsset}
+                  readOnly={!isAdmin}
                 />
               </div>
             ))}

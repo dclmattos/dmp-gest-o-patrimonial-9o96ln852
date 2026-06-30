@@ -22,7 +22,9 @@ export function ProtectedRoute() {
   if (
     user?.role === 'user' &&
     location.pathname !== '/my-portfolio' &&
-    location.pathname !== '/advisor'
+    location.pathname !== '/advisor' &&
+    location.pathname !== '/patrimonio' &&
+    location.pathname !== '/fluxo'
   ) {
     return <Navigate to="/my-portfolio" replace />
   }

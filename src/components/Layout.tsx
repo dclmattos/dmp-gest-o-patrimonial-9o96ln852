@@ -254,16 +254,38 @@ export default function Layout() {
                 </SidebarMenuItem>
               </>
             ) : (
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link
-                    to="/my-portfolio"
-                    className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
-                  >
-                    <PieChart /> <span>Meu Portfólio</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link
+                      to="/my-portfolio"
+                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
+                    >
+                      <PieChart /> <span>Meu Portfólio</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link
+                      to="/patrimonio"
+                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
+                    >
+                      <Briefcase /> <span>Patrimônio</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link
+                      to="/fluxo"
+                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
+                    >
+                      <ArrowRightLeft /> <span>Fluxo de Caixa</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </>
             )}
             <SidebarMenuItem className="mt-8">
               <SidebarMenuButton

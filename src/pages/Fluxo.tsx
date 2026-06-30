@@ -52,7 +52,9 @@ export default function Fluxo() {
   const [assets, setAssets] = useState<any[]>([])
   const [overrides, setOverrides] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
-  const [selectedClient, setSelectedClient] = useState<string>('all')
+  const [selectedClient, setSelectedClient] = useState<string>(
+    user?.role === 'admin' ? 'all' : user?.id || 'all',
+  )
   const [selectedAsset, setSelectedAsset] = useState<string>('all')
   const { currency } = useCurrency()
   const { toast } = useToast()
@@ -244,7 +246,7 @@ export default function Fluxo() {
                 </div>
                 <CardTitle className="font-serif text-xl">Previsão de Entradas</CardTitle>
               </div>
-              <AddReceivableDialog />
+              {user?.role === 'admin' && <AddReceivableDialog />}
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -273,18 +275,20 @@ export default function Fluxo() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <EditReceivableDialog receivable={r} />
-                      <button
-                        onClick={() =>
-                          setItemToDelete({ type: 'receivable', id: r.id, name: r.source })
-                        }
-                        className="text-slate-400 hover:text-rose-500 transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50 cursor-pointer"
-                        title="Excluir Entrada"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+                    {user?.role === 'admin' && (
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <EditReceivableDialog receivable={r} />
+                        <button
+                          onClick={() =>
+                            setItemToDelete({ type: 'receivable', id: r.id, name: r.source })
+                          }
+                          className="text-slate-400 hover:text-rose-500 transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50 cursor-pointer"
+                          title="Excluir Entrada"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
                     <p className="text-emerald-600 font-medium text-lg">
                       +{formatCurrency(convertValue(r.amount, 'BRL', currency), currency)}
                     </p>
@@ -309,7 +313,7 @@ export default function Fluxo() {
                 </div>
                 <CardTitle className="font-serif text-xl">Passivos e Obrigações</CardTitle>
               </div>
-              <AddLiabilityDialog />
+              {user?.role === 'admin' && <AddLiabilityDialog />}
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -350,18 +354,20 @@ export default function Fluxo() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <EditLiabilityDialog liability={l} />
-                      <button
-                        onClick={() =>
-                          setItemToDelete({ type: 'liability', id: l.id, name: l.name })
-                        }
-                        className="text-slate-400 hover:text-rose-500 transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50 cursor-pointer"
-                        title="Excluir Obrigação"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+                    {user?.role === 'admin' && (
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <EditLiabilityDialog liability={l} />
+                        <button
+                          onClick={() =>
+                            setItemToDelete({ type: 'liability', id: l.id, name: l.name })
+                          }
+                          className="text-slate-400 hover:text-rose-500 transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50 cursor-pointer"
+                          title="Excluir Obrigação"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    )}
                     <p className="text-rose-600 font-medium text-lg">
                       -
                       {formatCurrency(
@@ -389,9 +395,10 @@ export default function Fluxo() {
         receivables={filteredReceivables}
         liabilities={filteredLiabilities}
         currency={currency}
-        onReorder={handleReorder}
+        onReorder={user?.role === 'admin' ? handleReorder : undefined}
         overrides={overrides}
         assets={assets}
+        readOnly={user?.role !== 'admin'}
       />
 
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
