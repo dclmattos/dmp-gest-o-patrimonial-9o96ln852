@@ -255,12 +255,11 @@ export default function Fluxo() {
                   className="group p-5 flex items-center justify-between hover:bg-muted/30 transition-colors"
                 >
                   <div>
-                    <p className="font-medium text-slate-800 dark:text-slate-200">{r.source}</p>
-                    {r.asset && assets.find((a) => a.id === r.asset) && (
-                      <p className="text-xs text-emerald-600 mt-0.5">
-                        Ativo: {assets.find((a) => a.id === r.asset)?.name}
-                      </p>
-                    )}
+                    <p className="font-medium text-slate-800 dark:text-slate-200">
+                      {r.asset && assets.find((a) => a.id === r.asset)
+                        ? `${assets.find((a) => a.id === r.asset)?.name}: ${r.source}`
+                        : r.source}
+                    </p>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1.5">
                       {r.expected_date && (
                         <div className="flex items-center gap-1">
@@ -321,12 +320,11 @@ export default function Fluxo() {
                   className="group p-5 flex items-center justify-between hover:bg-muted/30 transition-colors"
                 >
                   <div>
-                    <p className="font-medium text-slate-800 dark:text-slate-200">{l.name}</p>
-                    {l.asset && assets.find((a) => a.id === l.asset) && (
-                      <p className="text-xs text-rose-600 mt-0.5">
-                        Ativo: {assets.find((a) => a.id === l.asset)?.name}
-                      </p>
-                    )}
+                    <p className="font-medium text-slate-800 dark:text-slate-200">
+                      {l.asset && assets.find((a) => a.id === l.asset)
+                        ? `${assets.find((a) => a.id === l.asset)?.name}: ${l.name}`
+                        : l.name}
+                    </p>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1.5">
                       {l.is_recurring && l.monthly_due_day ? (
                         <div className="flex items-center gap-1">

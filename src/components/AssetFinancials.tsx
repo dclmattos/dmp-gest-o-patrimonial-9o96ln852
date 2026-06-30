@@ -16,6 +16,26 @@ export function AssetFinancials({
 }) {
   const { currency } = useCurrency()
 
+  const hasReceivables = receivables.length > 0
+  const hasLiabilities = liabilities.length > 0
+  const hasAny = hasReceivables || hasLiabilities
+
+  if (!hasAny) {
+    return (
+      <div className="mt-4 pt-4 border-t border-border/40">
+        <div className="flex flex-col items-center justify-center py-6 text-center gap-3">
+          <p className="text-sm text-muted-foreground">
+            Nenhuma entrada ou obrigação vinculada a este ativo.
+          </p>
+          <div className="flex gap-2">
+            <AddReceivableDialog assetId={assetId} />
+            <AddLiabilityDialog assetId={assetId} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="mt-4 pt-4 border-t border-border/40 space-y-4">
       <div>
@@ -25,7 +45,7 @@ export function AssetFinancials({
           </span>
           <AddReceivableDialog assetId={assetId} />
         </div>
-        {receivables.length > 0 ? (
+        {hasReceivables ? (
           <div className="space-y-1">
             {receivables.map((r) => (
               <div key={r.id} className="flex items-center justify-between text-xs py-1 group">
@@ -53,7 +73,7 @@ export function AssetFinancials({
           </span>
           <AddLiabilityDialog assetId={assetId} />
         </div>
-        {liabilities.length > 0 ? (
+        {hasLiabilities ? (
           <div className="space-y-1">
             {liabilities.map((l) => (
               <div key={l.id} className="flex items-center justify-between text-xs py-1 group">
