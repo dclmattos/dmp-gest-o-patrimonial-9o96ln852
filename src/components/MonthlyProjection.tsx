@@ -274,6 +274,13 @@ export function MonthlyProjection({
                   {projectionData.receivableRows.map((r) => {
                     const original = receivableMap.get(r.id)
                     const isDone = original?.is_done
+                    const expectedDate = original?.expected_date
+                      ? new Date(original.expected_date)
+                      : null
+                    const doneMonthIndex =
+                      isDone && expectedDate
+                        ? months.findIndex((m) => isSameMonth(m, expectedDate))
+                        : -1
                     return (
                       <TableRow
                         key={r.id}
@@ -299,31 +306,36 @@ export function MonthlyProjection({
                             <span className={cn(!onReorder && 'ml-4')}>{r.source}</span>
                           </div>
                         </TableCell>
-                        {r.amounts.map((amt, i) => (
-                          <TableCell
-                            key={i}
-                            className={cn(
-                              'text-right whitespace-nowrap p-0',
-                              isDone
-                                ? 'bg-green-100 dark:bg-green-500/20'
-                                : 'hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20',
-                            )}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => setQuickEdit({ type: 'receivable', record: original })}
+                        {r.amounts.map((amt, i) => {
+                          const isCellDone = isDone && i === doneMonthIndex
+                          return (
+                            <TableCell
+                              key={i}
                               className={cn(
-                                'w-full h-full px-4 py-2 text-right cursor-pointer transition-colors rounded-none',
-                                amt > 0 ? 'text-emerald-600' : 'text-muted-foreground',
-                                isDone
-                                  ? 'hover:bg-green-200 dark:hover:bg-green-500/30'
-                                  : 'hover:bg-emerald-50 dark:hover:bg-emerald-950/30',
+                                'text-right whitespace-nowrap p-0',
+                                isCellDone
+                                  ? 'bg-green-100 dark:bg-green-500/20'
+                                  : 'hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20',
                               )}
                             >
-                              {amt > 0 ? formatCurrency(amt, currency) : '—'}
-                            </button>
-                          </TableCell>
-                        ))}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setQuickEdit({ type: 'receivable', record: original })
+                                }
+                                className={cn(
+                                  'w-full h-full px-4 py-2 text-right cursor-pointer transition-colors rounded-none',
+                                  amt > 0 ? 'text-emerald-600' : 'text-muted-foreground',
+                                  isCellDone
+                                    ? 'hover:bg-green-200 dark:hover:bg-green-500/30'
+                                    : 'hover:bg-emerald-50 dark:hover:bg-emerald-950/30',
+                                )}
+                              >
+                                {amt > 0 ? formatCurrency(amt, currency) : '—'}
+                              </button>
+                            </TableCell>
+                          )
+                        })}
                       </TableRow>
                     )
                   })}
@@ -343,6 +355,18 @@ export function MonthlyProjection({
                   {projectionData.liabilityRows.map((l) => {
                     const original = liabilityMap.get(l.id)
                     const isDone = original?.is_done
+                    const isRecurring = original?.is_recurring
+                    const liabilityDate = isRecurring
+                      ? new Date()
+                      : original?.due_date
+                        ? new Date(original.due_date)
+                        : original?.start_date
+                          ? new Date(original.start_date)
+                          : null
+                    const doneMonthIndex =
+                      isDone && liabilityDate
+                        ? months.findIndex((m) => isSameMonth(m, liabilityDate))
+                        : -1
                     return (
                       <TableRow
                         key={l.id}
@@ -368,31 +392,36 @@ export function MonthlyProjection({
                             <span className={cn(!onReorder && 'ml-4')}>{l.name}</span>
                           </div>
                         </TableCell>
-                        {l.amounts.map((amt, i) => (
-                          <TableCell
-                            key={i}
-                            className={cn(
-                              'text-right whitespace-nowrap p-0',
-                              isDone
-                                ? 'bg-green-100 dark:bg-green-500/20'
-                                : 'hover:bg-rose-50/50 dark:hover:bg-rose-950/20',
-                            )}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => setQuickEdit({ type: 'liability', record: original })}
+                        {l.amounts.map((amt, i) => {
+                          const isCellDone = isDone && i === doneMonthIndex
+                          return (
+                            <TableCell
+                              key={i}
                               className={cn(
-                                'w-full h-full px-4 py-2 text-right cursor-pointer transition-colors rounded-none',
-                                amt > 0 ? 'text-rose-600' : 'text-muted-foreground',
-                                isDone
-                                  ? 'hover:bg-green-200 dark:hover:bg-green-500/30'
-                                  : 'hover:bg-rose-50 dark:hover:bg-rose-950/30',
+                                'text-right whitespace-nowrap p-0',
+                                isCellDone
+                                  ? 'bg-green-100 dark:bg-green-500/20'
+                                  : 'hover:bg-rose-50/50 dark:hover:bg-rose-950/20',
                               )}
                             >
-                              {amt > 0 ? `-${formatCurrency(amt, currency)}` : '—'}
-                            </button>
-                          </TableCell>
-                        ))}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setQuickEdit({ type: 'liability', record: original })
+                                }
+                                className={cn(
+                                  'w-full h-full px-4 py-2 text-right cursor-pointer transition-colors rounded-none',
+                                  amt > 0 ? 'text-rose-600' : 'text-muted-foreground',
+                                  isCellDone
+                                    ? 'hover:bg-green-200 dark:hover:bg-green-500/30'
+                                    : 'hover:bg-rose-50 dark:hover:bg-rose-950/30',
+                                )}
+                              >
+                                {amt > 0 ? `-${formatCurrency(amt, currency)}` : '—'}
+                              </button>
+                            </TableCell>
+                          )
+                        })}
                       </TableRow>
                     )
                   })}
