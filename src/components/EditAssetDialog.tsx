@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,7 @@ import { CategoryMultiSelect } from './CategoryMultiSelect'
 import { createReceivable, deleteReceivable } from '@/services/receivables'
 import { createLiability, deleteLiability } from '@/services/liabilities'
 import { useToast } from '@/hooks/use-toast'
+import { useRealtime } from '@/hooks/use-realtime'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 
 export function EditAssetDialog({
@@ -53,6 +54,7 @@ export function EditAssetDialog({
   const [receivables, setReceivables] = useState<any[]>([])
   const [liabilities, setLiabilities] = useState<any[]>([])
   const [isSaving, setIsSaving] = useState(false)
+  const fetchLinkedRef = useRef<() => void>(() => {})
 
   const [name, setName] = useState(asset.name)
   const [typeRef, setTypeRef] = useState(asset.type_ref || '')
@@ -110,12 +112,39 @@ export function EditAssetDialog({
           console.error(e)
         }
       }
+      fetchLinkedRef.current = fetchLinked
       fetchLinked()
     }
   }, [open, asset])
 
+  useRealtime(
+    'receivables',
+    () => {
+      if (open) fetchLinkedRef.current()
+    },
+    open,
+  )
+
+  useRealtime(
+    'liabilities',
+    () => {
+      if (open) fetchLinkedRef.current()
+    },
+    open,
+  )
+
   const selectedType = types.find((t) => t.id === typeRef)
   const isEquityType = selectedType?.name === 'Participações Societárias'
+
+  const handleUpdateReceivable = (updated: any) => {
+    setReceivables((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+    setInitialReceivables((prev) => prev.map((r) => (r.id === updated.id ? updated : r)))
+  }
+
+  const handleUpdateLiability = (updated: any) => {
+    setLiabilities((prev) => prev.map((l) => (l.id === updated.id ? updated : l)))
+    setInitialLiabilities((prev) => prev.map((l) => (l.id === updated.id ? updated : l)))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -390,6 +419,7 @@ export function EditAssetDialog({
                   <AssetReceivableManager
                     receivables={receivables}
                     setReceivables={setReceivables}
+                    onUpdateItem={handleUpdateReceivable}
                   />
                 </div>
               </CollapsibleContent>
@@ -397,7 +427,7 @@ export function EditAssetDialog({
 
             <Collapsible className="border rounded-md p-3 space-y-2 bg-background">
               <CollapsibleTrigger className="flex items-center justify-between w-full font-medium text-sm hover:text-primary transition-colors [&[data-state=open]>svg]:rotate-180">
-                Despesas/Obrigações Associadas
+                Obrigações Vinculadas
                 <ChevronDown
                   size={16}
                   className="text-muted-foreground transition-transform duration-200"
@@ -408,6 +438,7 @@ export function EditAssetDialog({
                   <AssetLiabilityManager
                     liabilities={liabilities}
                     setLiabilities={setLiabilities}
+                    onUpdateItem={handleUpdateLiability}
                   />
                 </div>
               </CollapsibleContent>

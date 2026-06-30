@@ -21,7 +21,13 @@ import { updateReceivable } from '@/services/receivables'
 import { useToast } from '@/hooks/use-toast'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 
-export function EditReceivableDialog({ receivable }: { receivable: any }) {
+export function EditReceivableDialog({
+  receivable,
+  onUpdated,
+}: {
+  receivable: any
+  onUpdated?: (updated: any) => void
+}) {
   const [open, setOpen] = useState(false)
   const { toast } = useToast()
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -47,7 +53,7 @@ export function EditReceivableDialog({ receivable }: { receivable: any }) {
     e.preventDefault()
     setFieldErrors({})
     try {
-      await updateReceivable(receivable.id, {
+      const updated = await updateReceivable(receivable.id, {
         source,
         amount: Number(amount),
         expected_date: expectedDate
@@ -56,6 +62,7 @@ export function EditReceivableDialog({ receivable }: { receivable: any }) {
         frequency,
       })
       toast({ title: 'Sucesso', description: 'Entrada atualizada com sucesso.' })
+      if (onUpdated) onUpdated(updated)
       setOpen(false)
     } catch (err: any) {
       setFieldErrors(extractFieldErrors(err))

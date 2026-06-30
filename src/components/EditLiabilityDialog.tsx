@@ -15,7 +15,13 @@ import { updateLiability } from '@/services/liabilities'
 import { useToast } from '@/hooks/use-toast'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 
-export function EditLiabilityDialog({ liability }: { liability: any }) {
+export function EditLiabilityDialog({
+  liability,
+  onUpdated,
+}: {
+  liability: any
+  onUpdated?: (updated: any) => void
+}) {
   const [open, setOpen] = useState(false)
   const { toast } = useToast()
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -78,7 +84,7 @@ export function EditLiabilityDialog({ liability }: { liability: any }) {
     }
 
     try {
-      await updateLiability(liability.id, {
+      const updated = await updateLiability(liability.id, {
         name,
         total_value: totalValue ? Number(totalValue) : null,
         remaining_balance: remainingBalance ? Number(remainingBalance) : Number(totalValue),
@@ -91,6 +97,7 @@ export function EditLiabilityDialog({ liability }: { liability: any }) {
         end_date: hasEndDate && endDate ? new Date(endDate + 'T12:00:00.000Z').toISOString() : null,
       })
       toast({ title: 'Sucesso', description: 'Obrigação atualizada com sucesso.' })
+      if (onUpdated) onUpdated(updated)
       setOpen(false)
     } catch (err: any) {
       setFieldErrors(extractFieldErrors(err))

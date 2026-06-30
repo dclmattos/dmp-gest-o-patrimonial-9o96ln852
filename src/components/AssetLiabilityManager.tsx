@@ -4,14 +4,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Plus, Trash2 } from 'lucide-react'
-import { sortAlphabetically } from '@/lib/sort-utils'
+import { EditLiabilityDialog } from '@/components/EditLiabilityDialog'
 
 export function AssetLiabilityManager({
   liabilities,
   setLiabilities,
+  onUpdateItem,
 }: {
   liabilities: any[]
   setLiabilities: (v: any[]) => void
+  onUpdateItem?: (updated: any) => void
 }) {
   const [name, setName] = useState('')
   const [totalValue, setTotalValue] = useState('')
@@ -65,7 +67,7 @@ export function AssetLiabilityManager({
 
   return (
     <div className="space-y-4">
-      {liabilities.length > 0 && (
+      {liabilities.length > 0 ? (
         <div className="space-y-2">
           {liabilities.map((l, i) => (
             <div
@@ -80,18 +82,25 @@ export function AssetLiabilityManager({
                     : 'Sem saldo devedor'}
                 </p>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                onClick={() => setLiabilities(liabilities.filter((_, idx) => idx !== i))}
-              >
-                <Trash2 size={14} />
-              </Button>
+              <div className="flex items-center gap-1">
+                {l.id && <EditLiabilityDialog liability={l} onUpdated={onUpdateItem} />}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                  onClick={() => setLiabilities(liabilities.filter((_, idx) => idx !== i))}
+                >
+                  <Trash2 size={14} />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
+      ) : (
+        <p className="text-xs text-muted-foreground/60 italic text-center py-2">
+          Nenhuma obrigação vinculada a este ativo.
+        </p>
       )}
       <div className="grid grid-cols-2 gap-3 p-3 border border-dashed rounded-lg bg-muted/5">
         <div className="space-y-1.5 col-span-2">

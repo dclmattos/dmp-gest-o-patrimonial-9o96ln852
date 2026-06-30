@@ -355,7 +355,7 @@ export function AssetDialog() {
 
             <Collapsible className="border rounded-md p-3 space-y-2 bg-background">
               <CollapsibleTrigger className="flex items-center justify-between w-full font-medium text-sm hover:text-primary transition-colors [&[data-state=open]>svg]:rotate-180">
-                Recebíveis Associados
+                Entradas Vinculadas
                 <ChevronDown
                   size={16}
                   className="text-muted-foreground transition-transform duration-200"
@@ -373,7 +373,7 @@ export function AssetDialog() {
 
             <Collapsible className="border rounded-md p-3 space-y-2 bg-background">
               <CollapsibleTrigger className="flex items-center justify-between w-full font-medium text-sm hover:text-primary transition-colors [&[data-state=open]>svg]:rotate-180">
-                Despesas/Obrigações Associadas
+                Obrigações Vinculadas
                 <ChevronDown
                   size={16}
                   className="text-muted-foreground transition-transform duration-200"
