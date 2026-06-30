@@ -17,9 +17,11 @@ export const getFlowOverrides = async (userId?: string) => {
 }
 
 export const createFlowOverride = async (data: Partial<FlowOverride>) => {
-  const targetUser = getSelectedUserId() || pb.authStore.record?.id
-  if (targetUser && !data.user) {
-    data.user = targetUser
+  if (!data.user) {
+    const targetUser = getSelectedUserId() || pb.authStore.record?.id
+    if (targetUser) {
+      data.user = targetUser
+    }
   }
   return await pb.collection('flow_overrides').create(data)
 }

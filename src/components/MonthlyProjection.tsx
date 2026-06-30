@@ -303,14 +303,6 @@ export function MonthlyProjection({
                   </TableRow>
                   {projectionData.receivableRows.map((r) => {
                     const original = receivableMap.get(r.id)
-                    const baseIsDone = original?.is_done
-                    const expectedDate = original?.expected_date
-                      ? new Date(original.expected_date)
-                      : null
-                    const baseDoneMonthIndex =
-                      baseIsDone && expectedDate
-                        ? months.findIndex((m) => isSameMonth(m, expectedDate))
-                        : -1
                     return (
                       <TableRow
                         key={r.id}
@@ -337,8 +329,7 @@ export function MonthlyProjection({
                           </div>
                         </TableCell>
                         {r.amounts.map((amt, i) => {
-                          const isCellDone =
-                            r.cellDone[i] || (i === baseDoneMonthIndex && baseIsDone)
+                          const isCellDone = r.cellDone[i]
                           const cellOverride = getCellOverride('receivable', r.id, months[i])
                           return (
                             <TableCell
@@ -391,19 +382,6 @@ export function MonthlyProjection({
                   </TableRow>
                   {projectionData.liabilityRows.map((l) => {
                     const original = liabilityMap.get(l.id)
-                    const baseIsDone = original?.is_done
-                    const isRecurring = original?.is_recurring
-                    const liabilityDate = isRecurring
-                      ? new Date()
-                      : original?.due_date
-                        ? new Date(original.due_date)
-                        : original?.start_date
-                          ? new Date(original.start_date)
-                          : null
-                    const baseDoneMonthIndex =
-                      baseIsDone && liabilityDate
-                        ? months.findIndex((m) => isSameMonth(m, liabilityDate))
-                        : -1
                     return (
                       <TableRow
                         key={l.id}
@@ -430,8 +408,7 @@ export function MonthlyProjection({
                           </div>
                         </TableCell>
                         {l.amounts.map((amt, i) => {
-                          const isCellDone =
-                            l.cellDone[i] || (i === baseDoneMonthIndex && baseIsDone)
+                          const isCellDone = l.cellDone[i]
                           const cellOverride = getCellOverride('liability', l.id, months[i])
                           return (
                             <TableCell
