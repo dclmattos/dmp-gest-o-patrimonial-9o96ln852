@@ -32,6 +32,7 @@ interface MonthlyProjectionProps {
   liabilities: any[]
   currency: string
   onReorder?: (type: 'receivable' | 'liability', draggedId: string, targetId: string) => void
+  overrides?: any[]
 }
 
 export function MonthlyProjection({
@@ -39,12 +40,15 @@ export function MonthlyProjection({
   liabilities,
   currency,
   onReorder,
+  overrides = [],
 }: MonthlyProjectionProps) {
   const [draggedItem, setDraggedItem] = useState<{ id: string; type: string } | null>(null)
   const [dragOverItem, setDragOverItem] = useState<{ id: string; type: string } | null>(null)
   const [quickEdit, setQuickEdit] = useState<{
     type: 'receivable' | 'liability'
     record: any
+    month: Date | null
+    override: any | null
   } | null>(null)
 
   const handleDragStart = (e: React.DragEvent, id: string, type: 'receivable' | 'liability') => {
@@ -70,11 +74,9 @@ export function MonthlyProjection({
     e.preventDefault()
     setDragOverItem(null)
     setDraggedItem(null)
-
     try {
       const data = JSON.parse(e.dataTransfer.getData('text/plain'))
       if (data.type !== type || data.id === id || !onReorder) return
-
       onReorder(data.type, data.id, id)
     } catch {
       /* intentionally ignored */
@@ -100,6 +102,16 @@ export function MonthlyProjection({
     }
   }, [dateRange])
 
+  const overrideMap = useMemo(() => {
+    const map = new Map<string, any>()
+    overrides.forEach((o) => {
+      const monthDate = new Date(o.month)
+      const monthKey = format(monthDate, 'yyyy-MM')
+      map.set(`${o.flow_type}:${o.flow_id}:${monthKey}`, o)
+    })
+    return map
+  }, [overrides])
+
   const receivableMap = useMemo(() => {
     const map = new Map<string, any>()
     receivables.forEach((r) => map.set(r.id, r))
@@ -118,15 +130,16 @@ export function MonthlyProjection({
       const expected = r.expected_date ? new Date(r.expected_date) : null
 
       const amounts = months.map((month) => {
+        const monthKey = format(month, 'yyyy-MM')
+        const override = overrideMap.get(`receivable:${r.id}:${monthKey}`)
+        if (override?.amount != null) return convertValue(override.amount, 'BRL', currency)
+
         if (!expected) return 0
-        const monthStart = startOfMonth(month)
         const monthEnd = endOfMonth(month)
         let itemTotal = 0
 
         if (r.frequency === 'one-time') {
-          if (isSameMonth(expected, month)) {
-            itemTotal = amount
-          }
+          if (isSameMonth(expected, month)) itemTotal = amount
         } else {
           if (expected <= monthEnd) {
             const diffMonths =
@@ -140,7 +153,14 @@ export function MonthlyProjection({
         }
         return itemTotal
       })
-      return { id: r.id, source: r.source, amounts }
+
+      const cellDone = months.map((month) => {
+        const monthKey = format(month, 'yyyy-MM')
+        const override = overrideMap.get(`receivable:${r.id}:${monthKey}`)
+        return override?.is_done || false
+      })
+
+      return { id: r.id, source: r.source, amounts, cellDone }
     })
 
     const liabilityRows = liabilities.map((l) => {
@@ -153,30 +173,35 @@ export function MonthlyProjection({
       const end = l.end_date ? new Date(l.end_date) : null
 
       const amounts = months.map((month) => {
+        const monthKey = format(month, 'yyyy-MM')
+        const override = overrideMap.get(`liability:${l.id}:${monthKey}`)
+        if (override?.amount != null) return convertValue(override.amount, 'BRL', currency)
+
         const monthStart = startOfMonth(month)
         const monthEnd = endOfMonth(month)
         let itemTotal = 0
 
         if (l.is_recurring) {
-          if (start && start <= monthEnd && (!end || end >= monthStart)) {
-            itemTotal = amount
-          }
+          if (start && start <= monthEnd && (!end || end >= monthStart)) itemTotal = amount
         } else {
           if (l.due_date) {
             const due = new Date(l.due_date)
-            if (isSameMonth(due, month)) {
-              itemTotal = amount
-            }
+            if (isSameMonth(due, month)) itemTotal = amount
           } else if (l.start_date) {
             const s = new Date(l.start_date)
-            if (isSameMonth(s, month)) {
-              itemTotal = amount
-            }
+            if (isSameMonth(s, month)) itemTotal = amount
           }
         }
         return itemTotal
       })
-      return { id: l.id, name: l.name, amounts }
+
+      const cellDone = months.map((month) => {
+        const monthKey = format(month, 'yyyy-MM')
+        const override = overrideMap.get(`liability:${l.id}:${monthKey}`)
+        return override?.is_done || false
+      })
+
+      return { id: l.id, name: l.name, amounts, cellDone }
     })
 
     const totals = months.map((_, i) => {
@@ -192,7 +217,12 @@ export function MonthlyProjection({
     })
 
     return { receivableRows, liabilityRows, summary }
-  }, [months, receivables, liabilities, currency])
+  }, [months, receivables, liabilities, currency, overrideMap])
+
+  const getCellOverride = (type: string, flowId: string, month: Date) => {
+    const monthKey = format(month, 'yyyy-MM')
+    return overrideMap.get(`${type}:${flowId}:${monthKey}`) || null
+  }
 
   return (
     <div className="mt-12 space-y-6 animate-fade-in-up">
@@ -273,12 +303,12 @@ export function MonthlyProjection({
                   </TableRow>
                   {projectionData.receivableRows.map((r) => {
                     const original = receivableMap.get(r.id)
-                    const isDone = original?.is_done
+                    const baseIsDone = original?.is_done
                     const expectedDate = original?.expected_date
                       ? new Date(original.expected_date)
                       : null
-                    const doneMonthIndex =
-                      isDone && expectedDate
+                    const baseDoneMonthIndex =
+                      baseIsDone && expectedDate
                         ? months.findIndex((m) => isSameMonth(m, expectedDate))
                         : -1
                     return (
@@ -307,7 +337,9 @@ export function MonthlyProjection({
                           </div>
                         </TableCell>
                         {r.amounts.map((amt, i) => {
-                          const isCellDone = isDone && i === doneMonthIndex
+                          const isCellDone =
+                            r.cellDone[i] || (i === baseDoneMonthIndex && baseIsDone)
+                          const cellOverride = getCellOverride('receivable', r.id, months[i])
                           return (
                             <TableCell
                               key={i}
@@ -321,7 +353,12 @@ export function MonthlyProjection({
                               <button
                                 type="button"
                                 onClick={() =>
-                                  setQuickEdit({ type: 'receivable', record: original })
+                                  setQuickEdit({
+                                    type: 'receivable',
+                                    record: original,
+                                    month: months[i],
+                                    override: cellOverride,
+                                  })
                                 }
                                 className={cn(
                                   'w-full h-full px-4 py-2 text-right cursor-pointer transition-colors rounded-none',
@@ -354,7 +391,7 @@ export function MonthlyProjection({
                   </TableRow>
                   {projectionData.liabilityRows.map((l) => {
                     const original = liabilityMap.get(l.id)
-                    const isDone = original?.is_done
+                    const baseIsDone = original?.is_done
                     const isRecurring = original?.is_recurring
                     const liabilityDate = isRecurring
                       ? new Date()
@@ -363,8 +400,8 @@ export function MonthlyProjection({
                         : original?.start_date
                           ? new Date(original.start_date)
                           : null
-                    const doneMonthIndex =
-                      isDone && liabilityDate
+                    const baseDoneMonthIndex =
+                      baseIsDone && liabilityDate
                         ? months.findIndex((m) => isSameMonth(m, liabilityDate))
                         : -1
                     return (
@@ -393,7 +430,9 @@ export function MonthlyProjection({
                           </div>
                         </TableCell>
                         {l.amounts.map((amt, i) => {
-                          const isCellDone = isDone && i === doneMonthIndex
+                          const isCellDone =
+                            l.cellDone[i] || (i === baseDoneMonthIndex && baseIsDone)
+                          const cellOverride = getCellOverride('liability', l.id, months[i])
                           return (
                             <TableCell
                               key={i}
@@ -407,7 +446,12 @@ export function MonthlyProjection({
                               <button
                                 type="button"
                                 onClick={() =>
-                                  setQuickEdit({ type: 'liability', record: original })
+                                  setQuickEdit({
+                                    type: 'liability',
+                                    record: original,
+                                    month: months[i],
+                                    override: cellOverride,
+                                  })
                                 }
                                 className={cn(
                                   'w-full h-full px-4 py-2 text-right cursor-pointer transition-colors rounded-none',
@@ -494,6 +538,8 @@ export function MonthlyProjection({
         onOpenChange={(open) => !open && setQuickEdit(null)}
         type={quickEdit?.type ?? 'receivable'}
         record={quickEdit?.record}
+        month={quickEdit?.month ?? null}
+        existingOverride={quickEdit?.override ?? null}
       />
     </div>
   )

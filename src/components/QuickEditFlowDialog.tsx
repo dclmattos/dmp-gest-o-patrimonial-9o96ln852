@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { format, startOfMonth } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 import {
   Dialog,
   DialogContent,
@@ -10,8 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { updateReceivable } from '@/services/receivables'
-import { updateLiability } from '@/services/liabilities'
+import { createFlowOverride, updateFlowOverride } from '@/services/flow-overrides'
 import { useToast } from '@/hooks/use-toast'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
 import { CheckCircle2 } from 'lucide-react'
@@ -21,6 +22,8 @@ interface QuickEditFlowDialogProps {
   onOpenChange: (open: boolean) => void
   type: 'receivable' | 'liability'
   record: any
+  month: Date | null
+  existingOverride: any | null
 }
 
 export function QuickEditFlowDialog({
@@ -28,6 +31,8 @@ export function QuickEditFlowDialog({
   onOpenChange,
   type,
   record,
+  month,
+  existingOverride,
 }: QuickEditFlowDialogProps) {
   const { toast } = useToast()
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -36,30 +41,35 @@ export function QuickEditFlowDialog({
 
   useEffect(() => {
     if (open && record) {
-      const currentAmount =
+      const baseAmount =
         type === 'receivable'
           ? record.amount
           : record.monthly_installment || record.remaining_balance
+      const currentAmount = existingOverride?.amount != null ? existingOverride.amount : baseAmount
       setAmount(currentAmount ? currentAmount.toString() : '')
-      setIsDone(record.is_done || false)
+      setIsDone(existingOverride?.is_done || false)
       setFieldErrors({})
     }
-  }, [open, record, type])
+  }, [open, record, type, existingOverride])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setFieldErrors({})
     try {
-      if (type === 'receivable') {
-        await updateReceivable(record.id, {
-          amount: Number(amount),
-          is_done: isDone,
-        })
+      const monthDate = month
+        ? format(startOfMonth(month), 'yyyy-MM-dd')
+        : format(new Date(), 'yyyy-MM-dd')
+      const data = {
+        flow_type: type,
+        flow_id: record.id,
+        month: monthDate,
+        amount: Number(amount),
+        is_done: isDone,
+      }
+      if (existingOverride) {
+        await updateFlowOverride(existingOverride.id, data)
       } else {
-        await updateLiability(record.id, {
-          monthly_installment: Number(amount),
-          is_done: isDone,
-        })
+        await createFlowOverride(data)
       }
       toast({ title: 'Sucesso', description: 'Fluxo atualizado com sucesso.' })
       onOpenChange(false)
@@ -80,6 +90,11 @@ export function QuickEditFlowDialog({
           <DialogTitle className="flex items-center gap-2">
             <CheckCircle2 size={18} className="text-muted-foreground" />
             Edição Rápida
+            {month && (
+              <span className="text-sm font-normal text-muted-foreground ml-1">
+                — {format(month, 'MMM/yyyy', { locale: ptBR })}
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -95,14 +110,11 @@ export function QuickEditFlowDialog({
               placeholder="0.00"
             />
             {fieldErrors.amount && <p className="text-sm text-red-500">{fieldErrors.amount}</p>}
-            {fieldErrors.monthly_installment && (
-              <p className="text-sm text-red-500">{fieldErrors.monthly_installment}</p>
-            )}
           </div>
           <div className="flex items-center justify-between p-3 border rounded-lg dark:border-slate-800">
             <div className="space-y-0.5">
               <Label className="font-medium">Efetuado</Label>
-              <p className="text-xs text-muted-foreground">Marcar como concluído</p>
+              <p className="text-xs text-muted-foreground">Marcar como concluído neste mês</p>
             </div>
             <Switch checked={isDone} onCheckedChange={setIsDone} />
           </div>

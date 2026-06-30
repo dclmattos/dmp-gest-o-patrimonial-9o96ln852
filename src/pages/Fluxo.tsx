@@ -27,6 +27,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/hooks/use-auth'
 import { getUsers } from '@/services/users'
 import { setSelectedUserId } from '@/stores/selectedUser'
+import { getFlowOverrides } from '@/services/flow-overrides'
 import { MonthlyProjection } from '@/components/MonthlyProjection'
 import {
   Select,
@@ -49,6 +50,7 @@ export default function Fluxo() {
   const [receivables, setReceivables] = useState<any[]>([])
   const [liabilities, setLiabilities] = useState<any[]>([])
   const [assets, setAssets] = useState<any[]>([])
+  const [overrides, setOverrides] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
   const [selectedClient, setSelectedClient] = useState<string>('all')
   const [selectedAsset, setSelectedAsset] = useState<string>('all')
@@ -77,6 +79,7 @@ export default function Fluxo() {
     getReceivables(filterUserId).then(setReceivables)
     getLiabilities(filterUserId).then(setLiabilities)
     getAssets(filterUserId).then(setAssets)
+    getFlowOverrides(filterUserId).then(setOverrides)
   }
 
   useEffect(() => {
@@ -86,6 +89,7 @@ export default function Fluxo() {
   useRealtime('receivables', loadData)
   useRealtime('liabilities', loadData)
   useRealtime('assets', loadData)
+  useRealtime('flow_overrides', loadData)
 
   const handleDelete = async () => {
     if (!itemToDelete) return
@@ -388,6 +392,7 @@ export default function Fluxo() {
         liabilities={filteredLiabilities}
         currency={currency}
         onReorder={handleReorder}
+        overrides={overrides}
       />
 
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>

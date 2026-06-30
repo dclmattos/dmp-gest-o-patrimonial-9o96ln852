@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-30T10:39:19.369Z",
+  "generatedAt": "2026-06-30T10:49:47.771Z",
   "collections": [
     {
       "name": "users",
@@ -566,6 +566,75 @@
         }
       ],
       "indexes": ["CREATE INDEX idx_asset_types_user ON asset_types (user)"]
+    },
+    {
+      "name": "flow_overrides",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
+        "view": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
+        "create": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)"
+      },
+      "fields": [
+        {
+          "name": "user",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "users"
+        },
+        {
+          "name": "flow_type",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["receivable", "liability"]
+        },
+        {
+          "name": "flow_id",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "month",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "amount",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_done",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_flow_overrides_user ON flow_overrides (user)",
+        "CREATE INDEX idx_flow_overrides_lookup ON flow_overrides (flow_type, flow_id, month)"
+      ]
     }
   ]
 }
