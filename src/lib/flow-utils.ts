@@ -27,7 +27,7 @@ export function getBaseDescription(
 ): string {
   const baseName = type === 'receivable' ? record.source : record.name
   const assetName = getAssetName(record, assets)
-  return assetName ? `${baseName} — ${assetName}` : baseName
+  return assetName ? `${assetName}: ${baseName}` : baseName
 }
 
 export function getDisplayDescription(

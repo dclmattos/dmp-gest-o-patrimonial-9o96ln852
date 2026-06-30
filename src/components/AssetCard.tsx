@@ -5,6 +5,7 @@ import * as Icons from 'lucide-react'
 import { formatCurrency, convertValue, useCurrency } from '@/hooks/use-currency'
 import { EditAssetDialog } from '@/components/EditAssetDialog'
 import { AssetOwnerSelect } from '@/components/AssetOwnerSelect'
+import { AssetFinancials } from '@/components/AssetFinancials'
 import { getAssetCategories } from '@/lib/asset-utils'
 import {
   AlertDialog,
@@ -184,6 +185,11 @@ export function AssetCard({
             </div>
           )}
         </div>
+        <AssetFinancials
+          assetId={asset.id}
+          receivables={assetReceivables}
+          liabilities={assetLiabilities}
+        />
       </CardContent>
     </Card>
   )

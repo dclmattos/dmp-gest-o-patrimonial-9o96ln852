@@ -21,7 +21,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { createReceivable } from '@/services/receivables'
 import { useToast } from '@/hooks/use-toast'
 
-export function AddReceivableDialog() {
+export function AddReceivableDialog({ assetId }: { assetId?: string }) {
   const [open, setOpen] = useState(false)
   const { user } = useAuth()
   const { toast } = useToast()
@@ -43,6 +43,7 @@ export function AddReceivableDialog() {
           ? new Date(expectedDate + 'T12:00:00.000Z').toISOString()
           : null,
         frequency,
+        ...(assetId ? { asset: assetId } : {}),
       })
       toast({ title: 'Sucesso', description: 'Entrada adicionada com sucesso.' })
       setOpen(false)

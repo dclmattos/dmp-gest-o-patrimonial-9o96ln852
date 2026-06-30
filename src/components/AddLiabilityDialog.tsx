@@ -15,7 +15,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { createLiability } from '@/services/liabilities'
 import { useToast } from '@/hooks/use-toast'
 
-export function AddLiabilityDialog() {
+export function AddLiabilityDialog({ assetId }: { assetId?: string }) {
   const [open, setOpen] = useState(false)
   const { user } = useAuth()
   const { toast } = useToast()
@@ -58,6 +58,7 @@ export function AddLiabilityDialog() {
         is_recurring: isRecurring,
         monthly_due_day: isRecurring && monthlyDueDay ? Number(monthlyDueDay) : null,
         end_date: hasEndDate && endDate ? new Date(endDate + 'T12:00:00.000Z').toISOString() : null,
+        ...(assetId ? { asset: assetId } : {}),
       })
       toast({ title: 'Sucesso', description: 'Obrigação adicionada com sucesso.' })
       setOpen(false)
