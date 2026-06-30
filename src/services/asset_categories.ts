@@ -2,7 +2,8 @@ import pb from '@/lib/pocketbase/client'
 import { getSelectedUserId } from '@/stores/selectedUser'
 
 export const getAssetCategories = async (userId?: string) => {
-  const filter = userId ? `user = "${userId}"` : ''
+  const targetUser = userId || getSelectedUserId() || pb.authStore.record?.id
+  const filter = targetUser ? `user = "${targetUser}"` : ''
   return await pb.collection('asset_categories').getFullList({ filter, sort: 'sort_order,name' })
 }
 
