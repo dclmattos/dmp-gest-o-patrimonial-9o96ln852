@@ -11,6 +11,7 @@ import {
 } from '@/lib/flow-utils'
 import { QuickEditFlowDialog } from '@/components/QuickEditFlowDialog'
 import { ArrowUpRight, ArrowDownRight, CheckCircle2, GripVertical } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const MONTH_COUNT = 6
 
@@ -88,6 +89,7 @@ export function MonthlyProjection({
   const renderRow = (record: any, type: 'receivable' | 'liability') => {
     const description = getDisplayDescription(record, type, null, assets)
     const amounts = months.map((m) => getAmountForMonth(record, type, m))
+    const overrideInfo = months.map((m) => findOverride(overrides, record.id, type, m))
     const total = amounts.reduce((sum, a) => sum + (a || 0), 0)
 
     return (
@@ -120,13 +122,31 @@ export function MonthlyProjection({
           return (
             <td
               key={i}
-              className={`py-3 px-4 text-center ${readOnly ? '' : 'cursor-pointer'} ${done ? 'opacity-50' : ''}`}
+              className={cn(
+                'py-3 px-4 text-center',
+                readOnly ? '' : 'cursor-pointer',
+                done && 'opacity-50',
+                overrideInfo[i] && 'bg-amber-50/60 dark:bg-amber-950/15',
+              )}
               onClick={() => handleCellClick(record, type, m)}
+              title={
+                overrideInfo[i]
+                  ? overrideInfo[i]?.description
+                    ? `Valor editado: ${overrideInfo[i].description}`
+                    : 'Valor editado para este mês (override)'
+                  : undefined
+              }
             >
-              <div className="flex items-center justify-center gap-1">
+              <div className="flex items-center justify-center gap-1.5">
                 {done && <CheckCircle2 size={12} className="text-emerald-500" />}
+                {overrideInfo[i] && (
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                )}
                 <span
-                  className={`text-sm ${type === 'receivable' ? 'text-emerald-600' : 'text-rose-600'}`}
+                  className={cn(
+                    'text-sm',
+                    type === 'receivable' ? 'text-emerald-600' : 'text-rose-600',
+                  )}
                 >
                   {type === 'receivable' ? '+' : '-'}
                   {formatCurrency(convertValue(amount, 'BRL', currency), currency)}
@@ -229,6 +249,15 @@ export function MonthlyProjection({
         {receivables.length === 0 && liabilities.length === 0 && (
           <div className="p-8 text-center text-muted-foreground">
             Nenhum fluxo cadastrado para projeção.
+          </div>
+        )}
+        {(receivables.length > 0 || liabilities.length > 0) && (
+          <div className="px-4 py-3 border-t border-border/40 flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+            <span>
+              Indica valor editado para este mês (override) — alterações não afetam a base
+              recorrente do fluxo.
+            </span>
           </div>
         )}
       </CardContent>

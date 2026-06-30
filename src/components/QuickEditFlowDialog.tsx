@@ -12,10 +12,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { createFlowOverride, updateFlowOverride } from '@/services/flow-overrides'
+import {
+  createFlowOverride,
+  updateFlowOverride,
+  deleteFlowOverride,
+} from '@/services/flow-overrides'
 import { useToast } from '@/hooks/use-toast'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, RotateCcw } from 'lucide-react'
 
 interface QuickEditFlowDialogProps {
   open: boolean
@@ -53,6 +57,26 @@ export function QuickEditFlowDialog({
       setFieldErrors({})
     }
   }, [open, record, type, existingOverride])
+
+  const baseAmountValue =
+    type === 'receivable'
+      ? record?.amount
+      : record?.monthly_installment || record?.remaining_balance
+
+  const handleReset = async () => {
+    if (!existingOverride) return
+    try {
+      await deleteFlowOverride(existingOverride.id)
+      toast({ title: 'Sucesso', description: 'Override removido. Valor base restaurado.' })
+      onOpenChange(false)
+    } catch (err: any) {
+      toast({
+        title: 'Erro',
+        description: 'Falha ao remover override.',
+        variant: 'destructive',
+      })
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -114,6 +138,13 @@ export function QuickEditFlowDialog({
               placeholder="0.00"
             />
             {fieldErrors.amount && <p className="text-sm text-red-500">{fieldErrors.amount}</p>}
+            {baseAmountValue != null && (
+              <p className="text-xs text-muted-foreground">
+                Valor base:{' '}
+                {baseAmountValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                {existingOverride?.amount != null && ' (editado neste mês)'}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Descrição</Label>
@@ -134,6 +165,17 @@ export function QuickEditFlowDialog({
             <Switch checked={isDone} onCheckedChange={setIsDone} />
           </div>
           <DialogFooter className="gap-2">
+            {existingOverride && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-rose-600 hover:text-rose-700 mr-auto"
+                onClick={handleReset}
+              >
+                <RotateCcw size={14} className="mr-1" />
+                Restaurar Base
+              </Button>
+            )}
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
