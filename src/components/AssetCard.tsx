@@ -1,15 +1,14 @@
 import { useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Trash2, X } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { formatCurrency, convertValue, useCurrency } from '@/hooks/use-currency'
 import { EditAssetDialog } from '@/components/EditAssetDialog'
 import { AssetOwnerSelect } from '@/components/AssetOwnerSelect'
 import { AssetFinancials } from '@/components/AssetFinancials'
 import { AssetDetailDialog } from '@/components/AssetDetailDialog'
-import { getAssetCategories, getAssetCategoryIds } from '@/lib/asset-utils'
-import { updateAsset } from '@/services/assets'
+import { getAssetCategories } from '@/lib/asset-utils'
 import { useToast } from '@/hooks/use-toast'
 import {
   AlertDialog,
@@ -47,7 +46,6 @@ export function AssetCard({
   const { currency } = useCurrency()
   const { toast } = useToast()
   const [detailOpen, setDetailOpen] = useState(false)
-  const [removingCategoryId, setRemovingCategoryId] = useState<string | null>(null)
 
   const assetReceivables = receivables.filter((r) => r.asset === asset.id)
   const assetLiabilities = liabilities.filter((l) => l.asset === asset.id)
@@ -71,34 +69,6 @@ export function AssetCard({
       ? Icons[assetType.icon as keyof typeof Icons]
       : Icons.Box
 
-  const handleRemoveCategory = async (categoryId: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    e.preventDefault()
-    setRemovingCategoryId(categoryId)
-    try {
-      const currentIds = getAssetCategoryIds(asset)
-      const newIds = currentIds.filter((id) => id !== categoryId)
-      const updatedAsset = await updateAsset(asset.id, {
-        category: newIds.length > 0 ? newIds : [],
-      })
-      if (onUpdate) {
-        onUpdate(updatedAsset)
-      }
-      toast({
-        title: 'Categoria removida',
-        description: 'A categoria foi removida do ativo com sucesso.',
-      })
-    } catch (err) {
-      toast({
-        title: 'Erro',
-        description: 'Falha ao remover categoria do ativo.',
-        variant: 'destructive',
-      })
-    } finally {
-      setRemovingCategoryId(null)
-    }
-  }
-
   return (
     <>
       <Card
@@ -120,27 +90,16 @@ export function AssetCard({
                   <Badge
                     key={cat.id}
                     variant="outline"
-                    className="flex items-center gap-1.5 pr-1 border-border/50 transition-all duration-300 hover:scale-105 group/category"
+                    className="flex items-center gap-1.5 pr-2 opacity-70 hover:opacity-100 border-border/50 transition-opacity duration-300"
                     style={{
                       color: cat.color,
-                      borderColor: `${cat.color}40`,
-                      backgroundColor: `${cat.color}10`,
+                      borderColor: `${cat.color}30`,
+                      backgroundColor: `${cat.color}08`,
                     }}
                   >
                     {/* @ts-expect-error */}
                     <Icon size={12} style={{ color: cat.color }} />
                     <span>{cat.name}</span>
-                    {!readOnly && (
-                      <button
-                        type="button"
-                        onClick={(e) => handleRemoveCategory(cat.id, e)}
-                        disabled={removingCategoryId === cat.id}
-                        className="ml-0.5 rounded-full p-0.5 hover:bg-destructive/15 transition-colors disabled:opacity-50 disabled:cursor-wait"
-                        title="Remover categoria"
-                      >
-                        <X size={12} />
-                      </button>
-                    )}
                   </Badge>
                 )
               })}
