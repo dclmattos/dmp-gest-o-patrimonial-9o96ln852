@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-29T16:37:36.480Z",
+  "generatedAt": "2026-06-30T10:24:19.743Z",
   "collections": [
     {
       "name": "users",
@@ -290,6 +290,12 @@
           "type": "number",
           "required": false,
           "system": false
+        },
+        {
+          "name": "is_done",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []
@@ -361,6 +367,12 @@
         {
           "name": "sort_order",
           "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "is_done",
+          "type": "bool",
           "required": false,
           "system": false
         }

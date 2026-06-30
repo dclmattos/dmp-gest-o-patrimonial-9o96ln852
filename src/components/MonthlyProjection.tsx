@@ -25,6 +25,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import { QuickEditFlowDialog } from '@/components/QuickEditFlowDialog'
 
 interface MonthlyProjectionProps {
   receivables: any[]
@@ -41,6 +42,10 @@ export function MonthlyProjection({
 }: MonthlyProjectionProps) {
   const [draggedItem, setDraggedItem] = useState<{ id: string; type: string } | null>(null)
   const [dragOverItem, setDragOverItem] = useState<{ id: string; type: string } | null>(null)
+  const [quickEdit, setQuickEdit] = useState<{
+    type: 'receivable' | 'liability'
+    record: any
+  } | null>(null)
 
   const handleDragStart = (e: React.DragEvent, id: string, type: 'receivable' | 'liability') => {
     e.dataTransfer.setData('text/plain', JSON.stringify({ id, type }))
@@ -94,6 +99,18 @@ export function MonthlyProjection({
       return []
     }
   }, [dateRange])
+
+  const receivableMap = useMemo(() => {
+    const map = new Map<string, any>()
+    receivables.forEach((r) => map.set(r.id, r))
+    return map
+  }, [receivables])
+
+  const liabilityMap = useMemo(() => {
+    const map = new Map<string, any>()
+    liabilities.forEach((l) => map.set(l.id, l))
+    return map
+  }, [liabilities])
 
   const projectionData = useMemo(() => {
     const receivableRows = receivables.map((r) => {
@@ -183,7 +200,7 @@ export function MonthlyProjection({
         <div>
           <h3 className="text-xl font-serif tracking-tight">Projeção Mensal</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Acompanhe o saldo projetado no período selecionado.
+            Acompanhe o saldo projetado no período selecionado. Clique nos valores para editar.
           </p>
         </div>
         <div className="w-full sm:w-auto">
@@ -254,41 +271,62 @@ export function MonthlyProjection({
                       Entradas
                     </TableCell>
                   </TableRow>
-                  {projectionData.receivableRows.map((r) => (
-                    <TableRow
-                      key={r.id}
-                      draggable={!!onReorder}
-                      onDragStart={(e) => handleDragStart(e, r.id, 'receivable')}
-                      onDragOver={(e) => handleDragOver(e, r.id, 'receivable')}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, r.id, 'receivable')}
-                      onDragEnd={handleDragEnd}
-                      className={cn(
-                        onReorder && 'cursor-move transition-colors',
-                        draggedItem?.id === r.id && 'opacity-50',
-                        dragOverItem?.id === r.id &&
-                          dragOverItem?.type === 'receivable' &&
-                          'bg-emerald-100/50 dark:bg-emerald-900/40',
-                      )}
-                    >
-                      <TableCell className="sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-border/40 pl-2 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          {onReorder && (
-                            <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
-                          )}
-                          <span className={cn(!onReorder && 'ml-4')}>{r.source}</span>
-                        </div>
-                      </TableCell>
-                      {r.amounts.map((amt, i) => (
-                        <TableCell
-                          key={i}
-                          className="text-right text-emerald-600 whitespace-nowrap"
-                        >
-                          {amt > 0 ? formatCurrency(amt, currency) : '—'}
+                  {projectionData.receivableRows.map((r) => {
+                    const original = receivableMap.get(r.id)
+                    const isDone = original?.is_done
+                    return (
+                      <TableRow
+                        key={r.id}
+                        draggable={!!onReorder}
+                        onDragStart={(e) => handleDragStart(e, r.id, 'receivable')}
+                        onDragOver={(e) => handleDragOver(e, r.id, 'receivable')}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, r.id, 'receivable')}
+                        onDragEnd={handleDragEnd}
+                        className={cn(
+                          onReorder && 'cursor-move transition-colors',
+                          draggedItem?.id === r.id && 'opacity-50',
+                          dragOverItem?.id === r.id &&
+                            dragOverItem?.type === 'receivable' &&
+                            'bg-emerald-100/50 dark:bg-emerald-900/40',
+                        )}
+                      >
+                        <TableCell className="sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-border/40 pl-2 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            {onReorder && (
+                              <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
+                            )}
+                            <span className={cn(!onReorder && 'ml-4')}>{r.source}</span>
+                          </div>
                         </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
+                        {r.amounts.map((amt, i) => (
+                          <TableCell
+                            key={i}
+                            className={cn(
+                              'text-right whitespace-nowrap p-0',
+                              isDone
+                                ? 'bg-green-100 dark:bg-green-500/20'
+                                : 'hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20',
+                            )}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setQuickEdit({ type: 'receivable', record: original })}
+                              className={cn(
+                                'w-full h-full px-4 py-2 text-right cursor-pointer transition-colors rounded-none',
+                                amt > 0 ? 'text-emerald-600' : 'text-muted-foreground',
+                                isDone
+                                  ? 'hover:bg-green-200 dark:hover:bg-green-500/30'
+                                  : 'hover:bg-emerald-50 dark:hover:bg-emerald-950/30',
+                              )}
+                            >
+                              {amt > 0 ? formatCurrency(amt, currency) : '—'}
+                            </button>
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    )
+                  })}
                 </>
               )}
 
@@ -302,38 +340,62 @@ export function MonthlyProjection({
                       Saídas / Obrigações
                     </TableCell>
                   </TableRow>
-                  {projectionData.liabilityRows.map((l) => (
-                    <TableRow
-                      key={l.id}
-                      draggable={!!onReorder}
-                      onDragStart={(e) => handleDragStart(e, l.id, 'liability')}
-                      onDragOver={(e) => handleDragOver(e, l.id, 'liability')}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, l.id, 'liability')}
-                      onDragEnd={handleDragEnd}
-                      className={cn(
-                        onReorder && 'cursor-move transition-colors',
-                        draggedItem?.id === l.id && 'opacity-50',
-                        dragOverItem?.id === l.id &&
-                          dragOverItem?.type === 'liability' &&
-                          'bg-rose-100/50 dark:bg-rose-900/40',
-                      )}
-                    >
-                      <TableCell className="sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-border/40 pl-2 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          {onReorder && (
-                            <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
-                          )}
-                          <span className={cn(!onReorder && 'ml-4')}>{l.name}</span>
-                        </div>
-                      </TableCell>
-                      {l.amounts.map((amt, i) => (
-                        <TableCell key={i} className="text-right text-rose-600 whitespace-nowrap">
-                          {amt > 0 ? `-${formatCurrency(amt, currency)}` : '—'}
+                  {projectionData.liabilityRows.map((l) => {
+                    const original = liabilityMap.get(l.id)
+                    const isDone = original?.is_done
+                    return (
+                      <TableRow
+                        key={l.id}
+                        draggable={!!onReorder}
+                        onDragStart={(e) => handleDragStart(e, l.id, 'liability')}
+                        onDragOver={(e) => handleDragOver(e, l.id, 'liability')}
+                        onDragLeave={handleDragLeave}
+                        onDrop={(e) => handleDrop(e, l.id, 'liability')}
+                        onDragEnd={handleDragEnd}
+                        className={cn(
+                          onReorder && 'cursor-move transition-colors',
+                          draggedItem?.id === l.id && 'opacity-50',
+                          dragOverItem?.id === l.id &&
+                            dragOverItem?.type === 'liability' &&
+                            'bg-rose-100/50 dark:bg-rose-900/40',
+                        )}
+                      >
+                        <TableCell className="sticky left-0 bg-white dark:bg-slate-900 z-10 border-r border-border/40 pl-2 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            {onReorder && (
+                              <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab active:cursor-grabbing" />
+                            )}
+                            <span className={cn(!onReorder && 'ml-4')}>{l.name}</span>
+                          </div>
                         </TableCell>
-                      ))}
-                    </TableRow>
-                  ))}
+                        {l.amounts.map((amt, i) => (
+                          <TableCell
+                            key={i}
+                            className={cn(
+                              'text-right whitespace-nowrap p-0',
+                              isDone
+                                ? 'bg-green-100 dark:bg-green-500/20'
+                                : 'hover:bg-rose-50/50 dark:hover:bg-rose-950/20',
+                            )}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setQuickEdit({ type: 'liability', record: original })}
+                              className={cn(
+                                'w-full h-full px-4 py-2 text-right cursor-pointer transition-colors rounded-none',
+                                amt > 0 ? 'text-rose-600' : 'text-muted-foreground',
+                                isDone
+                                  ? 'hover:bg-green-200 dark:hover:bg-green-500/30'
+                                  : 'hover:bg-rose-50 dark:hover:bg-rose-950/30',
+                              )}
+                            >
+                              {amt > 0 ? `-${formatCurrency(amt, currency)}` : '—'}
+                            </button>
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    )
+                  })}
                 </>
               )}
 
@@ -397,6 +459,13 @@ export function MonthlyProjection({
           Selecione um período válido para visualizar a projeção.
         </div>
       )}
+
+      <QuickEditFlowDialog
+        open={!!quickEdit}
+        onOpenChange={(open) => !open && setQuickEdit(null)}
+        type={quickEdit?.type ?? 'receivable'}
+        record={quickEdit?.record}
+      />
     </div>
   )
 }
