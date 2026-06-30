@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
-import { Briefcase } from 'lucide-react'
+import { Hexagon } from 'lucide-react'
 
 export function ProtectedRoute() {
   const { isAuthenticated, loading, user } = useAuth()
@@ -8,10 +8,12 @@ export function ProtectedRoute() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-950 text-primary">
+      <div className="flex items-center justify-center min-h-screen bg-black text-primary">
         <div className="flex flex-col items-center gap-4 animate-pulse">
-          <Briefcase size={32} />
-          <p className="font-serif tracking-widest text-sm text-slate-400">CARREGANDO COFRE</p>
+          <Hexagon size={32} strokeWidth={1} />
+          <p className="font-sans tracking-[0.3em] text-xs text-neutral-500 uppercase">
+            Carregando
+          </p>
         </div>
       </div>
     )
