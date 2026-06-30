@@ -71,9 +71,8 @@ export function CategoryMultiSelect({
             <div className="p-1">
               {orderedItems.length === 0 ? (
                 <div className="px-3 py-6 text-center space-y-3">
-                  <p className="text-sm text-muted-foreground">Nenhuma categoria encontrada.</p>
-                  <p className="text-xs text-muted-foreground">
-                    Abra o Gerenciador de Categorias para criar setores e categorias.
+                  <p className="text-sm text-muted-foreground">
+                    Nenhuma categoria encontrada. Crie uma no Gerenciador de Categorias.
                   </p>
                   {onLoadDefaults && (
                     <Button

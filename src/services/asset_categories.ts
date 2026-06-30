@@ -3,7 +3,7 @@ import { getSelectedUserId } from '@/stores/selectedUser'
 
 export const getAssetCategories = async (userId?: string) => {
   const filter = userId ? `user = "${userId}"` : ''
-  return await pb.collection('asset_categories').getFullList({ filter, sort: 'sort_order,created' })
+  return await pb.collection('asset_categories').getFullList({ filter, sort: 'sort_order,name' })
 }
 
 export const getAssetCategory = async (id: string) => {
