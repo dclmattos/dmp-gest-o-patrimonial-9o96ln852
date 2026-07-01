@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Link, Outlet, useNavigate } from 'react-router-dom'
+import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '@/hooks/use-auth'
 import { useCurrency } from '@/hooks/use-currency'
 import pb from '@/lib/pocketbase/client'
@@ -14,22 +14,9 @@ import {
   SidebarMenuButton,
   SidebarInset,
 } from '@/components/ui/sidebar'
-import {
-  Home,
-  Briefcase,
-  ArrowRightLeft,
-  TrendingUp,
-  FileText,
-  MessageSquare,
-  LogOut,
-  Search,
-  PieChart,
-  Users as UsersIcon,
-  X,
-  Loader2,
-} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 
 function GlobalSearch() {
   const [query, setQuery] = useState('')
@@ -78,9 +65,8 @@ function GlobalSearch() {
 
   return (
     <div ref={wrapperRef} className="relative hidden md:block z-50">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
       <Input
-        placeholder="Buscar ativos..."
+        placeholder="BUSCAR ATIVOS..."
         value={query}
         onChange={(e) => {
           setQuery(e.target.value)
@@ -89,7 +75,7 @@ function GlobalSearch() {
         onFocus={() => {
           if (query.trim()) setIsOpen(true)
         }}
-        className="w-64 pl-10 pr-8 bg-muted/50 border-none rounded-full h-10 shadow-none focus-visible:ring-1 focus-visible:ring-primary/30"
+        className="w-64 bg-transparent border-b border-t-0 border-l-0 border-r-0 border-neutral-800 rounded-none h-10 shadow-none focus-visible:ring-0 focus-visible:border-primary/50 text-xs tracking-widest placeholder:text-neutral-600"
       />
       {query && (
         <button
@@ -98,17 +84,17 @@ function GlobalSearch() {
             setResults([])
             setIsOpen(false)
           }}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          className="absolute right-0 top-1/2 -translate-y-1/2 text-neutral-600 hover:text-white text-[0.6rem] uppercase tracking-wider"
         >
-          <X className="h-4 w-4" />
+          LIMPAR
         </button>
       )}
 
       {isOpen && query.trim() && (
-        <div className="absolute top-full mt-2 w-full bg-popover border border-border/50 rounded-md shadow-md overflow-hidden">
+        <div className="absolute top-full mt-2 w-full bg-black border border-neutral-800 rounded-none shadow-xl overflow-hidden">
           {isLoading ? (
-            <div className="p-4 text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" /> Buscando...
+            <div className="p-4 text-center text-[0.65rem] tracking-wider uppercase text-neutral-500">
+              BUSCANDO...
             </div>
           ) : results.length > 0 ? (
             <div className="max-h-[300px] overflow-auto py-1">
@@ -120,18 +106,20 @@ function GlobalSearch() {
                     setQuery('')
                     navigate('/patrimonio', { state: { highlightAsset: asset.id } })
                   }}
-                  className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors flex flex-col gap-0.5"
+                  className="w-full text-left px-4 py-3 hover:bg-neutral-900 transition-colors flex flex-col gap-1 border-b border-neutral-900 last:border-0"
                 >
-                  <span className="text-sm font-medium line-clamp-1">{asset.name}</span>
-                  <span className="text-xs text-muted-foreground capitalize">
+                  <span className="text-sm font-light text-neutral-200 line-clamp-1">
+                    {asset.name}
+                  </span>
+                  <span className="text-[0.6rem] text-primary/70 uppercase tracking-wider">
                     {asset.type} {asset.subtype ? `- ${asset.subtype}` : ''}
                   </span>
                 </button>
               ))}
             </div>
           ) : (
-            <div className="p-4 text-center text-sm text-muted-foreground">
-              Nenhum ativo encontrado
+            <div className="p-4 text-center text-[0.65rem] tracking-wider uppercase text-neutral-500">
+              NENHUM ATIVO
             </div>
           )}
         </div>
@@ -143,20 +131,59 @@ function GlobalSearch() {
 function CurrencyToggle() {
   const { currency, setCurrency } = useCurrency()
   return (
-    <div className="flex items-center bg-muted/50 p-1 rounded-full border border-border/50">
+    <div className="flex items-center gap-2">
       <button
         onClick={() => setCurrency('BRL')}
-        className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all ${currency === 'BRL' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+        className={cn(
+          'text-[0.6rem] tracking-[0.2em] transition-colors',
+          currency === 'BRL'
+            ? 'text-primary font-medium'
+            : 'text-neutral-600 hover:text-neutral-400',
+        )}
       >
         BRL
       </button>
+      <span className="text-neutral-800">|</span>
       <button
         onClick={() => setCurrency('USD')}
-        className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all ${currency === 'USD' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+        className={cn(
+          'text-[0.6rem] tracking-[0.2em] transition-colors',
+          currency === 'USD'
+            ? 'text-primary font-medium'
+            : 'text-neutral-600 hover:text-neutral-400',
+        )}
       >
         USD
       </button>
     </div>
+  )
+}
+
+function NavLink({ to, label }: { to: string; label: string }) {
+  const location = useLocation()
+  const isActive = location.pathname === to
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild>
+        <Link
+          to={to}
+          className={cn(
+            'flex items-center gap-3 py-3 px-4 text-[0.65rem] tracking-[0.25em] uppercase font-light transition-all group',
+            isActive
+              ? 'text-white bg-white/5'
+              : 'text-neutral-500 hover:text-neutral-200 hover:bg-white/5',
+          )}
+        >
+          <span
+            className={cn(
+              'w-2 h-px transition-colors duration-300',
+              isActive ? 'bg-primary' : 'bg-neutral-800 group-hover:bg-primary/50',
+            )}
+          />
+          {label}
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   )
 }
 
@@ -166,162 +193,69 @@ export default function Layout() {
 
   return (
     <SidebarProvider>
-      <Sidebar variant="sidebar" className="bg-slate-950 border-r-slate-800 text-slate-300 dark">
-        <SidebarHeader className="p-4 pt-6 pb-2 not-italic">
-          <div className="px-2 w-full flex justify-center pointer-events-none select-none">
-            <div className="border border-slate-700/60 p-3 sm:p-4 rounded-sm relative w-full flex justify-center opacity-80">
-              {/* Subtle corner accents */}
-              <div className="absolute -top-px -left-px w-1.5 h-1.5 border-t border-l border-slate-400/80" />
-              <div className="absolute -top-px -right-px w-1.5 h-1.5 border-t border-r border-slate-400/80" />
-              <div className="absolute -bottom-px -left-px w-1.5 h-1.5 border-b border-l border-slate-400/80" />
-              <div className="absolute -bottom-px -right-px w-1.5 h-1.5 border-b border-r border-slate-400/80" />
-
-              <div className="flex flex-col text-center font-serif text-slate-100 antialiased mix-blend-screen">
-                <span className="text-2xl font-bold tracking-[0.3em] leading-none mb-1 uppercase flex items-center justify-center gap-2">
-                  <Briefcase size={14} className="opacity-70 text-slate-300" strokeWidth={1.5} />
-                  DMP
-                </span>
-                <span className="text-[0.55rem] font-medium italic opacity-90 tracking-[0.2em] uppercase mt-1">
-                  Gestão Patrimonial
-                </span>
-              </div>
-            </div>
+      <Sidebar variant="sidebar" className="bg-black border-r border-neutral-900">
+        <SidebarHeader className="p-6 pt-10 pb-8">
+          <div className="relative px-5 py-4 inline-block w-fit mx-auto">
+            <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-primary" />
+            <div className="absolute top-0 right-0 w-3 h-3 border-t border-r border-primary" />
+            <div className="absolute bottom-0 left-0 w-3 h-3 border-b border-l border-primary" />
+            <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-primary" />
+            <span className="text-[0.65rem] font-light tracking-[0.3em] uppercase text-primary/90 text-center block">
+              Gestão
+              <br />
+              Patrimonial
+            </span>
           </div>
         </SidebarHeader>
-        <SidebarContent className="px-3 mt-6">
-          <SidebarMenu>
+        <SidebarContent className="px-0">
+          <SidebarMenu className="gap-1">
             {isAdmin ? (
               <>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to="/"
-                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
-                    >
-                      <Home /> <span>Resumo Global</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to="/patrimonio"
-                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
-                    >
-                      <Briefcase /> <span>Patrimônio</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to="/fluxo"
-                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
-                    >
-                      <ArrowRightLeft /> <span>Fluxo de Caixa</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to="/evolucao"
-                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
-                    >
-                      <TrendingUp /> <span>Evolução</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to="/relatorios"
-                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
-                    >
-                      <FileText /> <span>Relatórios</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to="/users"
-                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
-                    >
-                      <UsersIcon /> <span>Usuários</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <NavLink to="/" label="Resumo Global" />
+                <NavLink to="/patrimonio" label="Patrimônio" />
+                <NavLink to="/fluxo" label="Fluxo de Caixa" />
+                <NavLink to="/evolucao" label="Evolução" />
+                <NavLink to="/relatorios" label="Relatórios" />
+                <NavLink to="/users" label="Usuários" />
               </>
             ) : (
               <>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to="/my-portfolio"
-                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
-                    >
-                      <PieChart /> <span>Meu Portfólio</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to="/patrimonio"
-                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
-                    >
-                      <Briefcase /> <span>Patrimônio</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      to="/fluxo"
-                      className="text-slate-300 hover:text-slate-100 hover:bg-slate-800/50"
-                    >
-                      <ArrowRightLeft /> <span>Fluxo de Caixa</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <NavLink to="/my-portfolio" label="Meu Portfólio" />
+                <NavLink to="/patrimonio" label="Patrimônio" />
+                <NavLink to="/fluxo" label="Fluxo de Caixa" />
               </>
             )}
             <SidebarMenuItem className="mt-8">
-              <SidebarMenuButton
-                asChild
-                className="bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary transition-colors"
-              >
-                <Link to="/advisor">
-                  <MessageSquare /> <span>VIP Assistant</span>
+              <SidebarMenuButton asChild>
+                <Link
+                  to="/advisor"
+                  className="flex items-center gap-3 py-3 px-4 text-[0.65rem] tracking-[0.25em] uppercase font-light text-primary hover:text-white transition-colors group"
+                >
+                  <span className="w-2 h-px bg-primary transition-colors group-hover:bg-white" />
+                  VIP Assistant
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
-        <div className="p-4 mt-auto border-t border-slate-800">
+        <div className="p-6 mt-auto border-t border-neutral-900">
           <Button
             variant="ghost"
-            className="w-full justify-start text-slate-400 hover:text-slate-100 hover:bg-slate-800"
+            className="w-full justify-start text-[0.65rem] tracking-[0.2em] uppercase font-light text-neutral-500 hover:text-white hover:bg-transparent px-0"
             onClick={signOut}
           >
-            <LogOut className="mr-2 h-4 w-4" /> Sair do Cofre
+            <span className="w-2 h-px bg-neutral-800 mr-3" /> SAIR DO COFRE
           </Button>
         </div>
       </Sidebar>
-      <SidebarInset className="bg-background text-foreground flex flex-col min-h-screen">
-        <header className="h-16 px-6 border-b border-border/40 flex items-center justify-between shrink-0 bg-background/80 backdrop-blur-md sticky top-0 z-10">
+      <SidebarInset className="bg-black text-white flex flex-col min-h-screen">
+        <header className="h-20 px-8 flex items-center justify-between shrink-0 bg-black/80 backdrop-blur-md sticky top-0 z-10 border-b border-neutral-900">
           <div className="flex items-center gap-4">
-            <h1 className="font-serif text-xl hidden sm:block text-slate-800 dark:text-slate-200">
+            <h1 className="font-serif text-xl font-light tracking-wide hidden sm:block text-neutral-200">
               {isAdmin ? 'Painel de Controle' : 'Área do Cliente'}
             </h1>
-            <div className="ml-2 border border-slate-300 dark:border-slate-700/50 px-2 py-0.5 rounded opacity-40 select-none hidden md:block">
-              <span className="font-serif text-[0.6rem] tracking-[0.25em] uppercase text-slate-600 dark:text-slate-300 mix-blend-multiply dark:mix-blend-screen">
-                DMP Gestão Patrimonial
-              </span>
-            </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-8">
             <GlobalSearch />
             <CurrencyToggle />
           </div>

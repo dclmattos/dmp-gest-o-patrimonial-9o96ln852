@@ -523,9 +523,11 @@ export default function Index() {
     <div className="space-y-8 animate-fade-in-up">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
         <div>
-          <h2 className="text-3xl font-serif tracking-tight">Visão Geral</h2>
-          <p className="text-muted-foreground mt-1">
-            Acompanhe e filtre a evolução do seu patrimônio.
+          <h2 className="text-2xl font-serif font-light tracking-widest uppercase text-neutral-200">
+            Visão Geral
+          </h2>
+          <p className="text-[0.65rem] font-sans font-light tracking-[0.2em] uppercase text-neutral-500 mt-2">
+            Acompanhe a evolução do seu patrimônio
           </p>
         </div>
         <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-3">
@@ -573,41 +575,33 @@ export default function Index() {
         </div>
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl bg-slate-950 text-slate-50 p-8 sm:p-12 shadow-elevation">
-        <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-          <Globe size={300} />
-        </div>
-        <div className="relative z-10">
-          <p className="text-slate-400 font-medium tracking-widest uppercase text-xs mb-3">
+      <div className="relative overflow-hidden border border-neutral-900 bg-[#020202] text-white p-8 sm:p-12">
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <p className="text-primary/70 font-light tracking-[0.3em] uppercase text-[0.65rem] mb-6">
             {isAllFiltered ? 'Patrimônio Total' : 'Valor Filtrado'}
           </p>
-          <div className="flex flex-col sm:flex-row sm:items-baseline gap-4">
-            <h1 className="text-5xl sm:text-7xl font-serif font-medium tracking-tight text-white">
+          <div className="flex flex-col sm:items-center gap-4">
+            <h1 className="text-5xl sm:text-7xl font-serif font-light tracking-wider text-white">
               {formatCurrency(netWorth, currency)}
             </h1>
             <div
-              className={`flex items-center px-3 py-1.5 rounded-md text-sm font-medium w-fit ${
-                monthlyVariation.isPositive
-                  ? 'text-emerald-400 bg-emerald-400/10'
-                  : 'text-rose-400 bg-rose-400/10'
+              className={`flex items-center text-[0.65rem] tracking-[0.2em] uppercase font-light mt-2 ${
+                monthlyVariation.isPositive ? 'text-primary' : 'text-neutral-500'
               }`}
             >
-              {monthlyVariation.isPositive ? (
-                <ArrowUpRight size={16} className="mr-1" />
-              ) : (
-                <ArrowDownRight size={16} className="mr-1" />
-              )}
-              {monthlyVariation.isPositive ? '+' : ''}
-              {monthlyVariation.percentage.toFixed(1)}% no mês
+              {monthlyVariation.isPositive ? 'Crescimento de ' : 'Retração de '}
+              {monthlyVariation.percentage.toFixed(1)}% NO MÊS
             </div>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="col-span-1 shadow-subtle border-none">
+        <Card className="col-span-1 border border-neutral-900 bg-[#020202] rounded-none">
           <CardHeader>
-            <CardTitle className="font-serif text-xl">Alocação Global</CardTitle>
+            <CardTitle className="font-serif text-xl font-light tracking-wide text-neutral-200 text-center">
+              Alocação Global
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {allocation.length > 0 ? (
@@ -690,26 +684,21 @@ export default function Index() {
         </Card>
 
         <div className="col-span-1 md:col-span-2 flex flex-col gap-6">
-          <Card className="shadow-subtle border-none flex flex-col justify-center bg-slate-50 dark:bg-slate-900 text-center items-center py-2">
+          <Card className="border border-neutral-900 flex flex-col justify-center bg-[#020202] text-center items-center py-6 rounded-none">
             <CardHeader className="flex flex-col items-center">
-              <div className="flex items-center gap-2 text-slate-500 mb-2">
-                <Building2 size={18} />
-                <span className="font-medium text-sm uppercase tracking-wider">
-                  Total de Ativos
-                </span>
+              <div className="text-primary/70 mb-4 text-[0.65rem] font-light uppercase tracking-[0.3em]">
+                Total de Ativos
               </div>
-              <CardTitle className="text-4xl sm:text-5xl font-serif text-slate-800 dark:text-slate-100 font-light">
+              <CardTitle className="text-4xl sm:text-5xl font-serif text-white font-light tracking-wide">
                 {formatCurrency(totalFilteredAssets, currency)}
               </CardTitle>
             </CardHeader>
           </Card>
 
-          <Card className="shadow-subtle border-none flex-1">
+          <Card className="border border-neutral-900 bg-[#020202] rounded-none flex-1">
             <CardHeader>
-              <CardTitle className="font-serif text-xl">
-                {isAllFiltered
-                  ? 'Evolução do Patrimônio Total (6 Meses)'
-                  : 'Evolução Filtrada (6 Meses)'}
+              <CardTitle className="font-serif text-xl font-light tracking-wide text-neutral-200 text-center">
+                {isAllFiltered ? 'Evolução do Patrimônio (6 Meses)' : 'Evolução Filtrada (6 Meses)'}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -805,11 +794,10 @@ export default function Index() {
       </div>
 
       {(upcomingLiabilities.length > 0 || upcomingReceivables.length > 0) && (
-        <Card className="shadow-subtle border border-primary/20 bg-primary/5">
+        <Card className="border border-primary/20 bg-primary/5 rounded-none mt-8">
           <CardHeader className="pb-3">
-            <CardTitle className="font-serif text-lg flex items-center gap-2">
-              <BellRing size={18} className="text-primary" />
-              Alertas da Semana
+            <CardTitle className="font-serif text-lg font-light tracking-wide text-primary uppercase text-center text-[0.8rem]">
+              Alertas Estratégicos
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -871,9 +859,11 @@ export default function Index() {
         </Card>
       )}
 
-      <Card className="shadow-subtle border-none">
+      <Card className="border border-neutral-900 bg-[#020202] rounded-none mt-8">
         <CardHeader>
-          <CardTitle className="font-serif text-xl">Projeção Mensal de Fluxo (6 Meses)</CardTitle>
+          <CardTitle className="font-serif text-xl font-light tracking-wide text-neutral-200 text-center">
+            Projeção Mensal de Fluxo (6 Meses)
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-[300px] w-full">

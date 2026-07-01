@@ -249,9 +249,11 @@ export default function Evolucao() {
     <div className="space-y-8 animate-fade-in-up print:m-0 print:p-0 print:bg-white">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 print:hidden">
         <div>
-          <h2 className="text-3xl font-serif tracking-tight">Evolução do Patrimônio</h2>
-          <p className="text-muted-foreground mt-1">
-            Analise a curva de crescimento do seu portfólio aplicando filtros customizados.
+          <h2 className="text-2xl font-serif font-light tracking-widest uppercase text-neutral-200">
+            Evolução Histórica
+          </h2>
+          <p className="text-[0.65rem] font-sans font-light tracking-[0.2em] uppercase text-neutral-500 mt-2">
+            Análise estratégica de crescimento
           </p>
         </div>
         <Button variant="outline" onClick={handleExportPDF} className="gap-2">
@@ -269,7 +271,7 @@ export default function Evolucao() {
         </p>
       </div>
 
-      <Card className="shadow-subtle border-none bg-slate-50 dark:bg-slate-900 print:shadow-none print:border print:bg-white print:break-inside-avoid">
+      <Card className="border border-neutral-900 bg-[#020202] rounded-none print:shadow-none print:border print:bg-white print:break-inside-avoid">
         <CardContent className="p-6">
           <div
             className={cn(
@@ -395,13 +397,11 @@ export default function Evolucao() {
         </CardContent>
       </Card>
 
-      <Card className="shadow-elevation border border-border/50 print:shadow-none print:border-0 print:break-inside-avoid">
-        <CardHeader className="pb-8">
-          <CardTitle className="font-serif text-2xl">Gráfico de Crescimento Histórico</CardTitle>
-          <CardDescription className="print:hidden">
-            Visão {isMulti ? 'comparativa' : 'consolidada'} dos ativos filtrados para o período
-            selecionado.
-          </CardDescription>
+      <Card className="border border-neutral-900 bg-[#020202] rounded-none print:shadow-none print:border-0 print:break-inside-avoid mt-6">
+        <CardHeader className="pb-8 text-center pt-8">
+          <CardTitle className="font-serif text-xl font-light tracking-widest uppercase text-neutral-200">
+            Gráfico de Crescimento
+          </CardTitle>
         </CardHeader>
         <CardContent className="h-[500px]">
           {evolutionData.length > 0 ? (

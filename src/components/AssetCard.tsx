@@ -72,43 +72,29 @@ export function AssetCard({
   return (
     <>
       <Card
-        className={`shadow-subtle border border-border/50 hover:border-primary/30 hover:shadow-elevation transition-all duration-500 group overflow-hidden bg-gradient-to-br from-card to-slate-50/50 dark:to-slate-900/50 ${readOnly ? 'cursor-pointer' : ''}`}
+        className={`border border-neutral-900 hover:border-primary/50 transition-all duration-500 group overflow-hidden bg-[#020202] rounded-none ${readOnly ? 'cursor-pointer' : ''}`}
         onClick={readOnly ? () => setDetailOpen(true) : undefined}
       >
         <CardHeader className="pb-4">
           <div className="flex justify-between items-start mb-4">
             <div className="flex gap-2 flex-wrap">
-              <Badge
-                variant="secondary"
-                className="bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-              >
+              <div className="text-[0.6rem] uppercase tracking-[0.2em] font-light text-primary/80 border border-primary/20 px-2 py-1">
                 {asset.subtype || 'Ativo'}
-              </Badge>
-              {assetCategories.map((cat) => {
-                const Icon = Icons[cat.icon as keyof typeof Icons] || Icons.Tags
-                return (
-                  <Badge
-                    key={cat.id}
-                    variant="outline"
-                    className="flex items-center gap-1.5 pr-2 opacity-70 hover:opacity-100 border-border/50 transition-opacity duration-300"
-                    style={{
-                      color: cat.color,
-                      borderColor: `${cat.color}30`,
-                      backgroundColor: `${cat.color}08`,
-                    }}
-                  >
-                    {/* @ts-expect-error */}
-                    <Icon size={12} style={{ color: cat.color }} />
-                    <span>{cat.name}</span>
-                  </Badge>
-                )
-              })}
+              </div>
+              {assetCategories.map((cat) => (
+                <div
+                  key={cat.id}
+                  className="text-[0.6rem] uppercase tracking-[0.2em] font-light px-2 py-1 border"
+                  style={{
+                    color: cat.color,
+                    borderColor: `${cat.color}30`,
+                  }}
+                >
+                  {cat.name}
+                </div>
+              ))}
             </div>
             <div className="flex items-center gap-2">
-              <div className="text-slate-400 group-hover:text-primary transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50">
-                {/* @ts-expect-error */}
-                <IconComponent size={18} />
-              </div>
               {!readOnly && (
                 <>
                   <EditAssetDialog
@@ -119,8 +105,8 @@ export function AssetCard({
                   />
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <button className="text-slate-400 hover:text-red-500 transition-colors p-2 bg-background rounded-full shadow-sm border border-border/50 cursor-pointer">
-                        <Trash2 size={18} />
+                      <button className="text-neutral-600 hover:text-destructive transition-colors p-2 cursor-pointer">
+                        <span className="text-[0.55rem] tracking-[0.2em] uppercase">Excluir</span>
                       </button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -146,13 +132,15 @@ export function AssetCard({
               )}
             </div>
           </div>
-          <CardTitle className="font-serif text-xl line-clamp-1">{asset.name}</CardTitle>
+          <CardTitle className="font-serif text-xl font-light tracking-wide text-neutral-200 line-clamp-1 mt-4">
+            {asset.name}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">
+          <p className="text-[0.6rem] text-neutral-500 uppercase tracking-[0.2em] mb-2 font-light">
             Valoração Atual
           </p>
-          <p className="text-3xl font-light tracking-tight text-slate-900 dark:text-slate-100">
+          <p className="text-3xl font-serif font-light tracking-wide text-white">
             {formatCurrency(
               convertValue(asset.current_valuation, asset.currency, currency),
               currency,

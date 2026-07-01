@@ -75,29 +75,31 @@ export default function MyPortfolio() {
   return (
     <div className="space-y-8 animate-fade-in-up">
       <div>
-        <h2 className="text-3xl font-serif tracking-tight">Meu Portfólio</h2>
-        <p className="text-muted-foreground mt-1">
-          Visualize seus relatórios personalizados e confidenciais.
+        <h2 className="text-2xl font-serif font-light tracking-widest uppercase text-neutral-200">
+          Meu Portfólio
+        </h2>
+        <p className="text-[0.65rem] font-sans font-light tracking-[0.2em] uppercase text-neutral-500 mt-2">
+          Relatórios estratégicos confidenciais
         </p>
       </div>
 
-      <div className="relative overflow-hidden rounded-2xl bg-slate-950 text-slate-50 p-8 sm:p-12 shadow-elevation">
-        <div className="relative z-10">
-          <p className="text-slate-400 font-medium tracking-widest uppercase text-xs mb-3">
+      <div className="relative overflow-hidden border border-neutral-900 bg-[#020202] text-white p-8 sm:p-12">
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <p className="text-primary/70 font-light tracking-[0.3em] uppercase text-[0.65rem] mb-6">
             Patrimônio Líquido Total
           </p>
-          <div className="flex items-baseline gap-4">
-            <h1 className="text-5xl sm:text-7xl font-serif font-medium tracking-tight text-white">
-              {formatCurrency(netWorth, currency)}
-            </h1>
-          </div>
+          <h1 className="text-5xl sm:text-7xl font-serif font-light tracking-wider text-white">
+            {formatCurrency(netWorth, currency)}
+          </h1>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="shadow-subtle border-none">
+        <Card className="border border-neutral-900 bg-[#020202] rounded-none">
           <CardHeader>
-            <CardTitle className="font-serif text-xl">Alocação de Ativos</CardTitle>
+            <CardTitle className="font-serif text-xl font-light tracking-wide text-neutral-200">
+              Alocação de Ativos
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {allocation.length > 0 ? (
@@ -138,32 +140,32 @@ export default function MyPortfolio() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-subtle border-none">
+        <Card className="border border-neutral-900 bg-[#020202] rounded-none">
           <CardHeader>
-            <CardTitle className="font-serif text-xl">Resumo Financeiro</CardTitle>
+            <CardTitle className="font-serif text-xl font-light tracking-wide text-neutral-200">
+              Resumo Financeiro
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                  <Building2 size={20} />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground font-medium">Total de Ativos</p>
-                  <p className="text-xl font-serif">{formatCurrency(totalAssets, currency)}</p>
-                </div>
+            <div className="flex items-center justify-between p-6 border border-neutral-800 bg-[#050505] rounded-none">
+              <div>
+                <p className="text-[0.65rem] text-neutral-500 uppercase tracking-[0.2em] font-light mb-2">
+                  Total de Ativos
+                </p>
+                <p className="text-2xl font-serif font-light text-white">
+                  {formatCurrency(totalAssets, currency)}
+                </p>
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-xl">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-destructive/10 rounded-lg text-destructive">
-                  <Wallet size={20} />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground font-medium">Passivos Registrados</p>
-                  <p className="text-xl font-serif">{formatCurrency(totalLiabilities, currency)}</p>
-                </div>
+            <div className="flex items-center justify-between p-6 border border-neutral-800 bg-[#050505] rounded-none">
+              <div>
+                <p className="text-[0.65rem] text-neutral-500 uppercase tracking-[0.2em] font-light mb-2">
+                  Passivos Registrados
+                </p>
+                <p className="text-2xl font-serif font-light text-white">
+                  {formatCurrency(totalLiabilities, currency)}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -171,9 +173,11 @@ export default function MyPortfolio() {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        <Card className="shadow-subtle border-none">
+        <Card className="border border-neutral-900 bg-[#020202] rounded-none">
           <CardHeader>
-            <CardTitle className="font-serif text-xl">Timeline de Passivos e Obrigações</CardTitle>
+            <CardTitle className="font-serif text-xl font-light tracking-wide text-neutral-200">
+              Cronograma de Obrigações
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {liabilityTimeline.length > 0 ? (
@@ -181,10 +185,12 @@ export default function MyPortfolio() {
                 {liabilityTimeline.map((l, i) => (
                   <div
                     key={i}
-                    className="flex justify-between items-center p-4 border border-slate-100 dark:border-slate-800 rounded-xl bg-card transition-colors hover:bg-slate-50 dark:hover:bg-slate-900/50"
+                    className="flex justify-between items-center p-4 border border-neutral-800 rounded-none bg-[#050505]"
                   >
-                    <span className="font-medium text-slate-700 dark:text-slate-300">{l.name}</span>
-                    <span className="text-destructive font-serif text-lg">
+                    <span className="font-light text-neutral-300 tracking-wide text-sm">
+                      {l.name}
+                    </span>
+                    <span className="text-white font-serif text-lg font-light">
                       {formatCurrency(l.value, currency)}
                     </span>
                   </div>

@@ -217,9 +217,11 @@ export default function Patrimonio() {
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4">
         <div>
-          <h2 className="text-3xl font-serif tracking-tight">Cofre de Ativos</h2>
-          <p className="text-muted-foreground mt-1">
-            Gestão completa dos seus ativos físicos e financeiros.
+          <h2 className="text-2xl font-serif font-light tracking-widest uppercase text-neutral-200">
+            Cofre de Ativos
+          </h2>
+          <p className="text-[0.65rem] font-sans font-light tracking-[0.2em] uppercase text-neutral-500 mt-2">
+            Gestão estratégica patrimonial
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -255,27 +257,34 @@ export default function Patrimonio() {
         </div>
       </div>
 
-      <Card className="shadow-subtle border-none bg-slate-950 text-slate-50">
-        <CardContent className="p-6 sm:p-8">
-          <p className="text-slate-400 font-medium tracking-widest uppercase text-xs mb-2">
+      <div className="relative overflow-hidden border border-neutral-900 bg-[#020202] text-white p-8 sm:p-12">
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <p className="text-primary/70 font-light tracking-[0.3em] uppercase text-[0.65rem] mb-6">
             Patrimônio Total
           </p>
-          <h3 className="text-3xl sm:text-4xl font-serif font-medium tracking-tight text-white">
+          <h3 className="text-4xl sm:text-6xl font-serif font-light tracking-wider text-white">
             {formatCurrency(totalWealth, currency)}
           </h3>
-          <p className="text-slate-400 text-sm mt-2">
+          <p className="text-[0.65rem] font-light tracking-[0.2em] uppercase text-neutral-500 mt-6">
             {allAssets.length} {allAssets.length === 1 ? 'ativo' : 'ativos'} no cofre
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <Tabs defaultValue="all" value={tab} onValueChange={setTab}>
-        <TabsList className="bg-muted/50 p-1 h-auto flex-wrap">
-          <TabsTrigger value="all" className="rounded-md py-2">
-            Todos os Ativos
+        <TabsList className="bg-transparent border-b border-neutral-900 p-0 h-auto flex-wrap w-full justify-start rounded-none">
+          <TabsTrigger
+            value="all"
+            className="rounded-none py-3 text-[0.65rem] tracking-[0.2em] uppercase font-light data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-white text-neutral-500 border-b-2 border-transparent"
+          >
+            Todos
           </TabsTrigger>
           {sortAlphabetically(types, 'name').map((t) => (
-            <TabsTrigger key={t.id} value={t.id} className="rounded-md py-2">
+            <TabsTrigger
+              key={t.id}
+              value={t.id}
+              className="rounded-none py-3 text-[0.65rem] tracking-[0.2em] uppercase font-light data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-white text-neutral-500 border-b-2 border-transparent"
+            >
               {t.name}
             </TabsTrigger>
           ))}
