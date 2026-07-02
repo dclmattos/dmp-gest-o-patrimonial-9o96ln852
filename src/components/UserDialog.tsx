@@ -11,10 +11,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { createUser, updateUser } from '@/services/users'
 import { useToast } from '@/hooks/use-toast'
 import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
+import { cn } from '@/lib/utils'
 
 interface UserDialogProps {
   open: boolean
@@ -31,11 +32,13 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [role, setRole] = useState('user')
 
   useEffect(() => {
     if (open) {
       setFieldErrors({})
+      setShowPassword(false)
       if (user) {
         setName(user.name || '')
         setEmail(user.email || '')
@@ -121,14 +124,32 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
 
             <div className="space-y-2">
               <Label>{user ? 'Nova Senha (deixe em branco para manter)' : 'Senha'}</Label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={user ? '••••••••' : 'Mínimo 8 caracteres'}
-                className={fieldErrors.password ? 'border-red-500' : ''}
-                required={!user}
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={user ? '••••••••' : 'Mínimo 8 caracteres'}
+                  className={cn('pr-10', fieldErrors.password ? 'border-red-500' : '')}
+                  required={!user}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setShowPassword((prev) => !prev)
+                    }
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center w-7 h-7 text-muted-foreground hover:text-primary transition-colors duration-200 rounded-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  tabIndex={0}
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
               {fieldErrors.password && (
                 <p className="text-sm text-red-500">{fieldErrors.password}</p>
               )}
