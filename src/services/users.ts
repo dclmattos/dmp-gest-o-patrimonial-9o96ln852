@@ -14,6 +14,7 @@ export const createUser = async (data: {
   password: string
   passwordConfirm: string
   role: string
+  can_edit_data?: boolean
 }) => {
   return await pb.collection('users').create(data)
 }

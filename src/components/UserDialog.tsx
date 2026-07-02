@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Switch } from '@/components/ui/switch'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { createUser, updateUser } from '@/services/users'
 import { useToast } from '@/hooks/use-toast'
@@ -20,7 +21,7 @@ import { cn } from '@/lib/utils'
 interface UserDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  user?: { id: string; name: string; email: string; role: string } | null
+  user?: { id: string; name: string; email: string; role: string; can_edit_data?: boolean } | null
   onSaved?: () => void
 }
 
@@ -34,6 +35,7 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [role, setRole] = useState('user')
+  const [canEditData, setCanEditData] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -43,12 +45,14 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
         setName(user.name || '')
         setEmail(user.email || '')
         setRole(user.role || 'user')
+        setCanEditData(user.can_edit_data ?? false)
         setPassword('')
       } else {
         setName('')
         setEmail('')
         setPassword('')
         setRole('user')
+        setCanEditData(false)
       }
     }
   }, [open, user])
@@ -57,22 +61,44 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
     e.preventDefault()
     setFieldErrors({})
 
+    if (!name.trim()) {
+      const msg = 'O nome é obrigatório.'
+      setFieldErrors({ name: msg })
+      toast({ title: 'Erro de validação', description: msg, variant: 'destructive' })
+      return
+    }
+
+    if (!email.trim()) {
+      const msg = 'O email é obrigatório.'
+      setFieldErrors({ email: msg })
+      toast({ title: 'Erro de validação', description: msg, variant: 'destructive' })
+      return
+    }
+
     if (password && password.length < 8) {
       const msg = 'A senha deve ter no mínimo 8 caracteres.'
       setFieldErrors({ password: msg })
-      toast({ title: 'Erro', description: msg, variant: 'destructive' })
+      toast({ title: 'Erro de validação', description: msg, variant: 'destructive' })
+      return
+    }
+
+    if (!user && (!password || password.length < 8)) {
+      const msg = 'A senha é obrigatória e deve ter no mínimo 8 caracteres.'
+      setFieldErrors({ password: msg })
+      toast({ title: 'Erro de validação', description: msg, variant: 'destructive' })
       return
     }
 
     setIsSaving(true)
     try {
       if (user) {
-        const data: Record<string, string> = { name, email, role }
-        if (password) {
-          data.password = password
-          data.passwordConfirm = password
-        }
-        await updateUser(user.id, data)
+        await updateUser(user.id, {
+          name,
+          email,
+          role,
+          can_edit_data: role === 'admin' ? true : canEditData,
+          ...(password ? { password, passwordConfirm: password } : {}),
+        })
         toast({
           title: 'Sucesso',
           description: password
@@ -86,6 +112,7 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
           password,
           passwordConfirm: password,
           role,
+          can_edit_data: role === 'admin' ? true : canEditData,
         })
         toast({ title: 'Sucesso', description: 'Usuário criado com sucesso.' })
       }
@@ -186,6 +213,22 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
                 </SelectContent>
               </Select>
               {fieldErrors.role && <p className="text-sm text-red-500">{fieldErrors.role}</p>}
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <Label>Permissão de Edição</Label>
+                <p className="text-xs text-muted-foreground">
+                  {role === 'admin'
+                    ? 'Administradores sempre têm acesso total.'
+                    : 'Permite ao cliente editar seus próprios dados.'}
+                </p>
+              </div>
+              <Switch
+                checked={role === 'admin' ? true : canEditData}
+                disabled={role === 'admin'}
+                onCheckedChange={setCanEditData}
+              />
             </div>
           </form>
         </ScrollArea>
