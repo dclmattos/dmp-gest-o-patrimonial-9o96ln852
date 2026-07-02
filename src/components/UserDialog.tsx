@@ -15,6 +15,8 @@ import { Switch } from '@/components/ui/switch'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { createUser, updateUser } from '@/services/users'
 import { useToast } from '@/hooks/use-toast'
+import { useAuth } from '@/hooks/use-auth'
+import pb from '@/lib/pocketbase/client'
 import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
 import { cn } from '@/lib/utils'
 
@@ -27,13 +29,16 @@ interface UserDialogProps {
 
 export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProps) {
   const { toast } = useToast()
+  const { user: currentUser } = useAuth()
   const [isSaving, setIsSaving] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
   const [role, setRole] = useState('user')
   const [canEditData, setCanEditData] = useState(false)
 
@@ -41,16 +46,19 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
     if (open) {
       setFieldErrors({})
       setShowPassword(false)
+      setShowPasswordConfirm(false)
       if (user) {
         setName(user.name || '')
         setEmail(user.email || '')
         setRole(user.role || 'user')
         setCanEditData(user.can_edit_data ?? false)
         setPassword('')
+        setPasswordConfirm('')
       } else {
         setName('')
         setEmail('')
         setPassword('')
+        setPasswordConfirm('')
         setRole('user')
         setCanEditData(false)
       }
@@ -82,6 +90,13 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
       return
     }
 
+    if (password && password !== passwordConfirm) {
+      const msg = 'As senhas não coincidem.'
+      setFieldErrors({ passwordConfirm: msg })
+      toast({ title: 'Erro de validação', description: msg, variant: 'destructive' })
+      return
+    }
+
     if (!user && (!password || password.length < 8)) {
       const msg = 'A senha é obrigatória e deve ter no mínimo 8 caracteres.'
       setFieldErrors({ password: msg })
@@ -97,12 +112,21 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
           email,
           role,
           can_edit_data: role === 'admin' ? true : canEditData,
-          ...(password ? { password, passwordConfirm: password } : {}),
+          ...(password ? { password, passwordConfirm: passwordConfirm } : {}),
         })
+
+        if (password && currentUser?.id === user.id) {
+          try {
+            await pb.collection('users').authRefresh()
+          } catch {
+            // Token may still be valid; ignore refresh failure
+          }
+        }
+
         toast({
           title: 'Sucesso',
           description: password
-            ? 'Usuário e senha atualizados com sucesso.'
+            ? 'Senha atualizada com sucesso.'
             : 'Usuário atualizado com sucesso.',
         })
       } else {
@@ -110,7 +134,7 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
           name,
           email,
           password,
-          passwordConfirm: password,
+          passwordConfirm: passwordConfirm,
           role,
           can_edit_data: role === 'admin' ? true : canEditData,
         })
@@ -200,6 +224,38 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
                 </p>
               )}
             </div>
+
+            {password && (
+              <div className="space-y-2">
+                <Label>Confirmar Senha</Label>
+                <div className="relative">
+                  <Input
+                    type={showPasswordConfirm ? 'text' : 'password'}
+                    value={passwordConfirm}
+                    onChange={(e) => setPasswordConfirm(e.target.value)}
+                    placeholder="Repita a senha"
+                    className={cn('pr-10', fieldErrors.passwordConfirm ? 'border-red-500' : '')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordConfirm((prev) => !prev)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center w-7 h-7 text-muted-foreground hover:text-primary transition-colors duration-200 rounded-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    tabIndex={0}
+                    aria-label={showPasswordConfirm ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    {showPasswordConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                {fieldErrors.passwordConfirm && (
+                  <p className="text-sm text-red-500">{fieldErrors.passwordConfirm}</p>
+                )}
+                {passwordConfirm &&
+                  passwordConfirm !== password &&
+                  !fieldErrors.passwordConfirm && (
+                    <p className="text-sm text-amber-500">As senhas não coincidem.</p>
+                  )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Função</Label>
