@@ -14,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
 import { createUser, updateUser } from '@/services/users'
 import { useToast } from '@/hooks/use-toast'
-import { extractFieldErrors, type FieldErrors } from '@/lib/pocketbase/errors'
+import { extractFieldErrors, getErrorMessage, type FieldErrors } from '@/lib/pocketbase/errors'
 import { cn } from '@/lib/utils'
 
 interface UserDialogProps {
@@ -43,6 +43,7 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
         setName(user.name || '')
         setEmail(user.email || '')
         setRole(user.role || 'user')
+        setPassword('')
       } else {
         setName('')
         setEmail('')
@@ -55,6 +56,14 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setFieldErrors({})
+
+    if (password && password.length < 8) {
+      const msg = 'A senha deve ter no mínimo 8 caracteres.'
+      setFieldErrors({ password: msg })
+      toast({ title: 'Erro', description: msg, variant: 'destructive' })
+      return
+    }
+
     setIsSaving(true)
     try {
       if (user) {
@@ -64,7 +73,12 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
           data.passwordConfirm = password
         }
         await updateUser(user.id, data)
-        toast({ title: 'Sucesso', description: 'Usuário atualizado com sucesso.' })
+        toast({
+          title: 'Sucesso',
+          description: password
+            ? 'Usuário e senha atualizados com sucesso.'
+            : 'Usuário atualizado com sucesso.',
+        })
       } else {
         await createUser({
           name,
@@ -81,7 +95,7 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
       setFieldErrors(extractFieldErrors(err))
       toast({
         title: 'Erro',
-        description: 'Falha ao salvar usuário. Verifique os campos.',
+        description: getErrorMessage(err),
         variant: 'destructive',
       })
     } finally {
@@ -152,6 +166,11 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
               </div>
               {fieldErrors.password && (
                 <p className="text-sm text-red-500">{fieldErrors.password}</p>
+              )}
+              {password && password.length > 0 && password.length < 8 && !fieldErrors.password && (
+                <p className="text-sm text-amber-500">
+                  A senha deve ter no mínimo 8 caracteres ({password.length}/8).
+                </p>
               )}
             </div>
 

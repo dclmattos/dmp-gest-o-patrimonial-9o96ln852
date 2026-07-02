@@ -29,7 +29,16 @@ export const updateUser = async (
     can_edit_data?: boolean
   },
 ) => {
-  return await pb.collection('users').update(id, data)
+  const payload: Record<string, unknown> = {}
+  if (data.name !== undefined) payload.name = data.name
+  if (data.email !== undefined) payload.email = data.email
+  if (data.role !== undefined) payload.role = data.role
+  if (data.can_edit_data !== undefined) payload.can_edit_data = data.can_edit_data
+  if (data.password !== undefined && data.password !== '') {
+    payload.password = data.password
+    payload.passwordConfirm = data.passwordConfirm ?? data.password
+  }
+  return await pb.collection('users').update(id, payload)
 }
 
 export const deleteUser = async (id: string) => {
