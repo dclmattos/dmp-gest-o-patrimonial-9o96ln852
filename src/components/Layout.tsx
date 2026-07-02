@@ -187,9 +187,16 @@ function NavLink({ to, label }: { to: string; label: string }) {
   )
 }
 
+export function getUserDisplayName(user: any): string {
+  if (user?.name && user.name.trim()) return user.name.trim()
+  if (user?.email && user.email.trim()) return user.email.trim()
+  return 'Usuário'
+}
+
 export default function Layout() {
   const { signOut, user } = useAuth()
   const isAdmin = user?.role === 'admin'
+  const displayName = getUserDisplayName(user)
 
   return (
     <SidebarProvider>
@@ -256,6 +263,10 @@ export default function Layout() {
             <h1 className="font-serif text-xl font-light tracking-wide hidden sm:block text-neutral-200">
               {isAdmin ? 'Painel de Controle' : 'Área do Cliente'}
             </h1>
+            <span className="hidden sm:block w-px h-4 bg-neutral-800" />
+            <span className="hidden sm:block text-[0.6rem] font-light tracking-[0.2em] uppercase text-neutral-500 max-w-[180px] truncate">
+              {displayName}
+            </span>
           </div>
           <div className="flex items-center gap-8">
             <GlobalSearch />
