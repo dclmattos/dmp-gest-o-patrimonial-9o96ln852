@@ -223,6 +223,8 @@ export default function Layout() {
                 <NavLink to="/my-portfolio" label="Meu Portfólio" />
                 <NavLink to="/patrimonio" label="Patrimônio" />
                 <NavLink to="/fluxo" label="Fluxo de Caixa" />
+                <NavLink to="/evolucao" label="Evolução" />
+                <NavLink to="/relatorios" label="Relatórios" />
               </>
             )}
             <SidebarMenuItem className="mt-8">

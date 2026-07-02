@@ -9,11 +9,7 @@ import { useAuth } from '@/hooks/use-auth'
 export function useDashboardData(userId?: string) {
   const { user } = useAuth()
   const effectiveUserId =
-    userId === 'all'
-      ? user?.role === 'admin'
-        ? undefined
-        : user?.id
-      : userId || (user?.role === 'user' ? user?.id : undefined)
+    user?.role === 'user' ? user?.id : userId === 'all' ? undefined : userId || undefined
 
   const [assets, setAssets] = useState<any[]>([])
   const [liabilities, setLiabilities] = useState<any[]>([])

@@ -26,7 +26,9 @@ export function ProtectedRoute() {
     location.pathname !== '/my-portfolio' &&
     location.pathname !== '/advisor' &&
     location.pathname !== '/patrimonio' &&
-    location.pathname !== '/fluxo'
+    location.pathname !== '/fluxo' &&
+    location.pathname !== '/evolucao' &&
+    location.pathname !== '/relatorios'
   ) {
     return <Navigate to="/my-portfolio" replace />
   }
