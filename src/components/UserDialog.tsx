@@ -110,8 +110,9 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
         await updateUser(user.id, {
           name,
           email,
-          role,
-          can_edit_data: role === 'admin' ? true : canEditData,
+          ...(currentUser?.role === 'admin'
+            ? { role, can_edit_data: role === 'admin' ? true : canEditData }
+            : {}),
           ...(password ? { password, passwordConfirm: passwordConfirm } : {}),
         })
 
@@ -135,8 +136,10 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
           email,
           password,
           passwordConfirm: passwordConfirm,
-          role,
-          can_edit_data: role === 'admin' ? true : canEditData,
+          role: currentUser?.role === 'admin' ? role : 'user',
+          ...(currentUser?.role === 'admin'
+            ? { can_edit_data: role === 'admin' ? true : canEditData }
+            : {}),
         })
         toast({ title: 'Sucesso', description: 'Usuário criado com sucesso.' })
       }
@@ -257,35 +260,39 @@ export function UserDialog({ open, onOpenChange, user, onSaved }: UserDialogProp
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label>Função</Label>
-              <Select value={role} onValueChange={setRole}>
-                <SelectTrigger className={fieldErrors.role ? 'border-red-500' : ''}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="user">Cliente</SelectItem>
-                </SelectContent>
-              </Select>
-              {fieldErrors.role && <p className="text-sm text-red-500">{fieldErrors.role}</p>}
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border p-3">
-              <div className="space-y-0.5">
-                <Label>Permissão de Edição</Label>
-                <p className="text-xs text-muted-foreground">
-                  {role === 'admin'
-                    ? 'Administradores sempre têm acesso total.'
-                    : 'Permite ao cliente editar seus próprios dados.'}
-                </p>
+            {currentUser?.role === 'admin' && (
+              <div className="space-y-2">
+                <Label>Função</Label>
+                <Select value={role} onValueChange={setRole}>
+                  <SelectTrigger className={fieldErrors.role ? 'border-red-500' : ''}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="user">Cliente</SelectItem>
+                  </SelectContent>
+                </Select>
+                {fieldErrors.role && <p className="text-sm text-red-500">{fieldErrors.role}</p>}
               </div>
-              <Switch
-                checked={role === 'admin' ? true : canEditData}
-                disabled={role === 'admin'}
-                onCheckedChange={setCanEditData}
-              />
-            </div>
+            )}
+
+            {currentUser?.role === 'admin' && (
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="space-y-0.5">
+                  <Label>Permissão de Edição</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {role === 'admin'
+                      ? 'Administradores sempre têm acesso total.'
+                      : 'Permite ao cliente editar seus próprios dados.'}
+                  </p>
+                </div>
+                <Switch
+                  checked={role === 'admin' ? true : canEditData}
+                  disabled={role === 'admin'}
+                  onCheckedChange={setCanEditData}
+                />
+              </div>
+            )}
           </form>
         </ScrollArea>
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t bg-muted/40">

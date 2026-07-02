@@ -60,7 +60,7 @@ export function DeleteUserDialog({ userId, userName, onDeleted }: DeleteUserDial
         <AlertDialogHeader>
           <AlertDialogTitle>Excluir Usuário</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete this user? This action cannot be undone.
+            Tem certeza de que deseja excluir este usuário? Esta ação não pode ser desfeita.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <p className="text-sm text-muted-foreground -mt-2">

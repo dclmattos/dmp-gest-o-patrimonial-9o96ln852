@@ -92,10 +92,12 @@ export default function Users() {
             Gerencie clientes e administradores do sistema.
           </p>
         </div>
-        <Button onClick={handleCreate} className="gap-2 shadow-subtle">
-          <Plus size={16} />
-          Novo Usuário
-        </Button>
+        {currentUser?.role === 'admin' && (
+          <Button onClick={handleCreate} className="gap-2 shadow-subtle">
+            <Plus size={16} />
+            Novo Usuário
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -172,11 +174,17 @@ export default function Users() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Switch
-                          checked={u.role === 'admin' ? true : !!u.can_edit_data}
-                          disabled={u.role === 'admin'}
-                          onCheckedChange={(checked) => handleToggleEditPermission(u.id, checked)}
-                        />
+                        {currentUser?.role === 'admin' ? (
+                          <Switch
+                            checked={u.role === 'admin' ? true : !!u.can_edit_data}
+                            disabled={u.role === 'admin'}
+                            onCheckedChange={(checked) => handleToggleEditPermission(u.id, checked)}
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            {u.can_edit_data ? 'Sim' : 'Não'}
+                          </span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
