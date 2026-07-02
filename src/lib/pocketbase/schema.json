@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-01T22:59:47.187Z",
+  "generatedAt": "2026-07-02T06:57:10.636Z",
   "collections": [
     {
       "name": "users",
@@ -44,6 +44,12 @@
           "required": true,
           "system": false,
           "selectValues": ["admin", "user"]
+        },
+        {
+          "name": "can_edit_data",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
@@ -57,9 +63,9 @@
       "apiRules": {
         "list": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
         "view": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
-        "create": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
-        "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
-        "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)"
+        "create": "@request.auth.id != '' && (@request.auth.role = 'admin' || (user = @request.auth.id && @request.auth.can_edit_data = true))",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || (user = @request.auth.id && @request.auth.can_edit_data = true))",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || (user = @request.auth.id && @request.auth.can_edit_data = true))"
       },
       "fields": [
         {
@@ -198,9 +204,9 @@
       "apiRules": {
         "list": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
         "view": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
-        "create": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
-        "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
-        "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)"
+        "create": "@request.auth.id != '' && (@request.auth.role = 'admin' || (user = @request.auth.id && @request.auth.can_edit_data = true))",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || (user = @request.auth.id && @request.auth.can_edit_data = true))",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || (user = @request.auth.id && @request.auth.can_edit_data = true))"
       },
       "fields": [
         {
@@ -306,9 +312,9 @@
       "apiRules": {
         "list": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
         "view": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
-        "create": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
-        "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
-        "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)"
+        "create": "@request.auth.id != '' && (@request.auth.role = 'admin' || (user = @request.auth.id && @request.auth.can_edit_data = true))",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || (user = @request.auth.id && @request.auth.can_edit_data = true))",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || (user = @request.auth.id && @request.auth.can_edit_data = true))"
       },
       "fields": [
         {
@@ -385,9 +391,9 @@
       "apiRules": {
         "list": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
         "view": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
-        "create": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
-        "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
-        "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)"
+        "create": "@request.auth.id != '' && (@request.auth.role = 'admin' || (user = @request.auth.id && @request.auth.can_edit_data = true))",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || (user = @request.auth.id && @request.auth.can_edit_data = true))",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || (user = @request.auth.id && @request.auth.can_edit_data = true))"
       },
       "fields": [
         {
@@ -439,9 +445,9 @@
       "apiRules": {
         "list": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
         "view": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
-        "create": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
-        "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)",
-        "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || user = @request.auth.id)"
+        "create": "@request.auth.id != '' && (@request.auth.role = 'admin' || (user = @request.auth.id && @request.auth.can_edit_data = true))",
+        "update": "@request.auth.id != '' && (@request.auth.role = 'admin' || (user = @request.auth.id && @request.auth.can_edit_data = true))",
+        "delete": "@request.auth.id != '' && (@request.auth.role = 'admin' || (user = @request.auth.id && @request.auth.can_edit_data = true))"
       },
       "fields": [
         {

@@ -26,6 +26,7 @@ export const updateUser = async (
     role?: string
     password?: string
     passwordConfirm?: string
+    can_edit_data?: boolean
   },
 ) => {
   return await pb.collection('users').update(id, data)

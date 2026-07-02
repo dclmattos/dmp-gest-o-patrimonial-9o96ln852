@@ -251,9 +251,9 @@ export default function Patrimonio() {
               </Button>
               <TypeManager />
               <CategoryManager />
-              <AssetDialog />
             </>
           )}
+          {(isAdmin || user?.can_edit_data) && <AssetDialog />}
         </div>
       </div>
 
@@ -310,7 +310,7 @@ export default function Patrimonio() {
                   liabilities={liabilities}
                   onDelete={handleDeleteAsset}
                   onUpdate={handleUpdateAsset}
-                  readOnly={!isAdmin}
+                  readOnly={!(isAdmin || user?.can_edit_data)}
                 />
               </div>
             ))}

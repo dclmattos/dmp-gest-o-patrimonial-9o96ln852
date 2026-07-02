@@ -11,8 +11,10 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { getUsers } from '@/services/users'
+import { getUsers, updateUser } from '@/services/users'
 import { useRealtime } from '@/hooks/use-realtime'
+import { useToast } from '@/hooks/use-toast'
+import { Switch } from '@/components/ui/switch'
 import { UserDialog } from '@/components/UserDialog'
 import { DeleteUserDialog } from '@/components/DeleteUserDialog'
 import { useAuth } from '@/hooks/use-auth'
@@ -23,6 +25,7 @@ interface UserRecord {
   email: string
   role: string
   created: string
+  can_edit_data?: boolean
 }
 
 export default function Users() {
@@ -31,6 +34,21 @@ export default function Users() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<UserRecord | null>(null)
   const { user: currentUser } = useAuth()
+  const { toast } = useToast()
+
+  const handleToggleEditPermission = async (userId: string, canEdit: boolean) => {
+    try {
+      await updateUser(userId, { can_edit_data: canEdit })
+      toast({ title: 'Sucesso', description: 'Permissão de edição atualizada com sucesso.' })
+      loadUsers()
+    } catch {
+      toast({
+        title: 'Erro',
+        description: 'Falha ao atualizar permissão.',
+        variant: 'destructive',
+      })
+    }
+  }
 
   const loadUsers = useCallback(async () => {
     try {
@@ -128,13 +146,14 @@ export default function Users() {
                   <TableHead>Nome</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Função</TableHead>
+                  <TableHead>Permissão de Edição</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {users.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                       Nenhum usuário encontrado.
                     </TableCell>
                   </TableRow>
@@ -151,6 +170,13 @@ export default function Users() {
                           {u.role === 'admin' ? <Shield size={12} /> : <UserIcon size={12} />}
                           {u.role === 'admin' ? 'Administrador' : 'Cliente'}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={u.role === 'admin' ? true : !!u.can_edit_data}
+                          disabled={u.role === 'admin'}
+                          onCheckedChange={(checked) => handleToggleEditPermission(u.id, checked)}
+                        />
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
