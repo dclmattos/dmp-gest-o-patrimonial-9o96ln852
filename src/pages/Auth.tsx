@@ -8,9 +8,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { cn } from '@/lib/utils'
 import { OtpLogin } from '@/components/OtpLogin'
+import { ForgotPassword } from '@/components/ForgotPassword'
 
 type Mode = 'login' | 'signup'
-type AuthMethod = 'password' | 'otp'
+type AuthMethod = 'password' | 'otp' | 'forgot'
 
 export default function Auth() {
   const { signIn, signUp, isAuthenticated, user } = useAuth()
@@ -87,11 +88,17 @@ export default function Auth() {
   const title =
     authMethod === 'otp'
       ? 'CÓDIGO DE ACESSO'
-      : mode === 'login'
-        ? 'ACESSO RESTRITO'
-        : 'NOVO CADASTRO'
+      : authMethod === 'forgot'
+        ? 'RECUPERAÇÃO DE SENHA'
+        : mode === 'login'
+          ? 'ACESSO RESTRITO'
+          : 'NOVO CADASTRO'
   const subtitle =
-    authMethod === 'otp' ? 'VALIDAÇÃO DE IDENTIDADE' : 'PLATAFORMA DE INTELIGÊNCIA PATRIMONIAL'
+    authMethod === 'otp'
+      ? 'VALIDAÇÃO DE IDENTIDADE'
+      : authMethod === 'forgot'
+        ? 'REDEFINIÇÃO SEGURA DE CREDENCIAIS'
+        : 'PLATAFORMA DE INTELIGÊNCIA PATRIMONIAL'
 
   const inputClass =
     'bg-[#050505] border-neutral-800 text-neutral-100 placeholder:text-neutral-700 focus-visible:ring-0 focus-visible:border-primary/50 h-12 rounded-none font-sans px-4'
@@ -148,7 +155,9 @@ export default function Auth() {
           </p>
         </div>
 
-        {authMethod === 'password' ? (
+        {authMethod === 'forgot' ? (
+          <ForgotPassword initialEmail={email} onBack={() => switchMethod('password')} />
+        ) : authMethod === 'password' ? (
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'signup' && (
               <div>
@@ -260,6 +269,18 @@ export default function Auth() {
             <Button type="submit" disabled={loading} className={btnClass}>
               {loading ? 'PROCESSANDO...' : mode === 'login' ? 'ENTRAR' : 'CRIAR CONTA'}
             </Button>
+
+            {mode === 'login' && (
+              <div className="text-center mt-2">
+                <button
+                  type="button"
+                  onClick={() => switchMethod('forgot')}
+                  className="text-[0.55rem] font-sans font-light tracking-[0.15em] uppercase text-neutral-600 hover:text-primary transition-colors"
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
+            )}
           </form>
         ) : (
           <OtpLogin
@@ -270,22 +291,20 @@ export default function Auth() {
           />
         )}
 
-        <div className="mt-12 flex flex-col items-center">
-          {authMethod === 'password' && (
-            <>
-              <p className="text-[0.55rem] text-neutral-600 uppercase tracking-[0.15em] mb-3">
-                {mode === 'login' ? 'Ainda não possui acesso?' : 'Já tem uma conta?'}
-              </p>
-              <button
-                type="button"
-                onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
-                className="text-[0.6rem] font-sans font-medium tracking-[0.2em] uppercase text-primary hover:text-primary/70 transition-colors"
-              >
-                {mode === 'login' ? 'Solicitar Cadastro' : 'Voltar ao Login'}
-              </button>
-            </>
-          )}
-        </div>
+        {authMethod === 'password' && (
+          <div className="mt-12 flex flex-col items-center">
+            <p className="text-[0.55rem] text-neutral-600 uppercase tracking-[0.15em] mb-3">
+              {mode === 'login' ? 'Ainda não possui acesso?' : 'Já tem uma conta?'}
+            </p>
+            <button
+              type="button"
+              onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
+              className="text-[0.6rem] font-sans font-medium tracking-[0.2em] uppercase text-primary hover:text-primary/70 transition-colors"
+            >
+              {mode === 'login' ? 'Solicitar Cadastro' : 'Voltar ao Login'}
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-center pointer-events-none w-full">
