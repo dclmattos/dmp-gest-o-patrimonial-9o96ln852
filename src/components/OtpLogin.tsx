@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Loader2 } from 'lucide-react'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 
 interface OtpLoginProps {
@@ -110,6 +111,7 @@ export function OtpLogin({ onSuccess, initialEmail }: OtpLoginProps) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className={inputClass}
+            disabled={loading}
             onKeyDown={(e) => e.key === 'Enter' && handleSendCode()}
           />
         </div>
@@ -123,7 +125,14 @@ export function OtpLogin({ onSuccess, initialEmail }: OtpLoginProps) {
         )}
 
         <Button type="button" disabled={loading} onClick={handleSendCode} className={btnClass}>
-          {loading ? 'ENVIANDO...' : 'ENVIAR CÓDIGO'}
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+              ENVIANDO...
+            </span>
+          ) : (
+            'ENVIAR CÓDIGO'
+          )}
         </Button>
       </div>
     )
@@ -147,13 +156,18 @@ export function OtpLogin({ onSuccess, initialEmail }: OtpLoginProps) {
       )}
 
       <div className="flex justify-center">
-        <InputOTP maxLength={6} value={code} onChange={(value) => setCode(value)}>
+        <InputOTP
+          maxLength={6}
+          value={code}
+          onChange={(value) => setCode(value)}
+          disabled={loading}
+        >
           <InputOTPGroup className="gap-2">
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <InputOTPSlot
                 key={i}
                 index={i}
-                className="w-10 h-12 bg-[#050505] border border-neutral-800 text-neutral-100 text-lg font-light rounded-none focus-visible:border-primary/50 focus-visible:ring-0"
+                className="w-10 h-12 bg-[#050505] border border-neutral-800 text-neutral-100 text-lg font-light rounded-none focus-visible:border-primary/50 focus-visible:ring-0 disabled:opacity-50"
               />
             ))}
           </InputOTPGroup>
@@ -166,7 +180,14 @@ export function OtpLogin({ onSuccess, initialEmail }: OtpLoginProps) {
         onClick={handleVerify}
         className={btnClass}
       >
-        {loading ? 'VERIFICANDO...' : 'VERIFICAR'}
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+            VERIFICANDO...
+          </span>
+        ) : (
+          'VERIFICAR'
+        )}
       </Button>
 
       <div className="flex items-center justify-between pt-4">

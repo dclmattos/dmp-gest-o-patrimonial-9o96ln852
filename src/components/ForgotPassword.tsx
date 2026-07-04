@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ArrowLeft, Check } from 'lucide-react'
+import { ArrowLeft, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { requestPasswordReset, resetPassword } from '@/services/password-reset'
@@ -158,6 +158,7 @@ export function ForgotPassword({ initialEmail, onBack }: ForgotPasswordProps) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className={inputClass}
+            disabled={loading}
             onKeyDown={(e) => e.key === 'Enter' && handleSendCode()}
           />
         </div>
@@ -171,7 +172,14 @@ export function ForgotPassword({ initialEmail, onBack }: ForgotPasswordProps) {
         )}
 
         <Button type="button" disabled={loading} onClick={handleSendCode} className={btnClass}>
-          {loading ? 'ENVIANDO...' : 'ENVIAR CÓDIGO'}
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+              ENVIANDO...
+            </span>
+          ) : (
+            'ENVIAR CÓDIGO'
+          )}
         </Button>
 
         <button
@@ -205,13 +213,18 @@ export function ForgotPassword({ initialEmail, onBack }: ForgotPasswordProps) {
         )}
 
         <div className="flex justify-center">
-          <InputOTP maxLength={6} value={code} onChange={(value) => setCode(value)}>
+          <InputOTP
+            maxLength={6}
+            value={code}
+            onChange={(value) => setCode(value)}
+            disabled={loading}
+          >
             <InputOTPGroup className="gap-2">
               {[0, 1, 2, 3, 4, 5].map((i) => (
                 <InputOTPSlot
                   key={i}
                   index={i}
-                  className="w-10 h-12 bg-[#050505] border border-neutral-800 text-neutral-100 text-lg font-light rounded-none focus-visible:border-primary/50 focus-visible:ring-0"
+                  className="w-10 h-12 bg-[#050505] border border-neutral-800 text-neutral-100 text-lg font-light rounded-none focus-visible:border-primary/50 focus-visible:ring-0 disabled:opacity-50"
                 />
               ))}
             </InputOTPGroup>
@@ -220,11 +233,18 @@ export function ForgotPassword({ initialEmail, onBack }: ForgotPasswordProps) {
 
         <Button
           type="button"
-          disabled={code.length !== 6}
+          disabled={code.length !== 6 || loading}
           onClick={handleVerifyCode}
           className={btnClass}
         >
-          CONTINUAR
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+              VERIFICANDO...
+            </span>
+          ) : (
+            'CONTINUAR'
+          )}
         </Button>
 
         <div className="flex items-center justify-between pt-2">
@@ -277,12 +297,14 @@ export function ForgotPassword({ initialEmail, onBack }: ForgotPasswordProps) {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             className={cn(inputClass, 'pr-20')}
+            disabled={loading}
           />
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-[0.55rem] tracking-[0.1em] uppercase text-neutral-500 hover:text-primary transition-colors"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-[0.55rem] tracking-[0.1em] uppercase text-neutral-500 hover:text-primary transition-colors disabled:opacity-40"
             tabIndex={-1}
+            disabled={loading}
           >
             {showPassword ? 'Ocultar' : 'Mostrar'}
           </button>
@@ -305,12 +327,14 @@ export function ForgotPassword({ initialEmail, onBack }: ForgotPasswordProps) {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             className={cn(inputClass, 'pr-20')}
+            disabled={loading}
           />
           <button
             type="button"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-[0.55rem] tracking-[0.1em] uppercase text-neutral-500 hover:text-primary transition-colors"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-[0.55rem] tracking-[0.1em] uppercase text-neutral-500 hover:text-primary transition-colors disabled:opacity-40"
             tabIndex={-1}
+            disabled={loading}
           >
             {showConfirmPassword ? 'Ocultar' : 'Mostrar'}
           </button>
@@ -336,7 +360,14 @@ export function ForgotPassword({ initialEmail, onBack }: ForgotPasswordProps) {
         onClick={handleResetPassword}
         className={btnClass}
       >
-        {loading ? 'SALVANDO...' : 'SALVAR NOVA SENHA'}
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+            SALVANDO...
+          </span>
+        ) : (
+          'SALVAR NOVA SENHA'
+        )}
       </Button>
 
       <button

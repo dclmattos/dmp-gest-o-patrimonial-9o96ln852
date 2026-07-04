@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { OtpLogin } from '@/components/OtpLogin'
 import { ForgotPassword } from '@/components/ForgotPassword'
@@ -185,6 +186,7 @@ export default function Auth() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className={inputClass}
+                  disabled={loading}
                 />
                 {validationErrors.name && (
                   <p className="text-[0.6rem] text-primary/80 mt-1 uppercase tracking-wider">
@@ -204,6 +206,7 @@ export default function Auth() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={inputClass}
+                disabled={loading}
               />
               {validationErrors.email && (
                 <p className="text-[0.6rem] text-primary/80 mt-1 uppercase tracking-wider">
@@ -223,12 +226,14 @@ export default function Auth() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className={cn(inputClass, 'pr-20')}
+                  disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[0.55rem] tracking-[0.1em] uppercase text-neutral-500 hover:text-primary transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[0.55rem] tracking-[0.1em] uppercase text-neutral-500 hover:text-primary transition-colors disabled:opacity-40"
                   tabIndex={-1}
+                  disabled={loading}
                 >
                   {showPassword ? 'Ocultar' : 'Mostrar'}
                 </button>
@@ -252,12 +257,14 @@ export default function Auth() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className={cn(inputClass, 'pr-20')}
+                    disabled={loading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[0.55rem] tracking-[0.1em] uppercase text-neutral-500 hover:text-primary transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[0.55rem] tracking-[0.1em] uppercase text-neutral-500 hover:text-primary transition-colors disabled:opacity-40"
                     tabIndex={-1}
+                    disabled={loading}
                   >
                     {showConfirmPassword ? 'Ocultar' : 'Mostrar'}
                   </button>
@@ -282,7 +289,16 @@ export default function Auth() {
             )}
 
             <Button type="submit" disabled={loading} className={btnClass}>
-              {loading ? 'PROCESSANDO...' : mode === 'login' ? 'ENTRAR' : 'CRIAR CONTA'}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />
+                  PROCESSANDO...
+                </span>
+              ) : mode === 'login' ? (
+                'ENTRAR'
+              ) : (
+                'CRIAR CONTA'
+              )}
             </Button>
 
             {mode === 'login' && (
