@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { Navigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
@@ -18,8 +18,8 @@ export default function Auth() {
   const [authMethod, setAuthMethod] = useState<AuthMethod>('password')
   const [mode, setMode] = useState<Mode>('login')
   const [name, setName] = useState('')
-  const [email, setEmail] = useState('dclmattos@gmail.com')
-  const [password, setPassword] = useState('Skip@Pass')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,6 +27,15 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const otpLoginRef = useRef(false)
+
+  useEffect(() => {
+    setEmail('')
+    setPassword('')
+    setName('')
+    setConfirmPassword('')
+    setError(null)
+    setValidationErrors({})
+  }, [])
 
   if (isAuthenticated) {
     if (otpLoginRef.current) return <Navigate to="/patrimonio" replace />
@@ -74,6 +83,8 @@ export default function Auth() {
     setError(null)
     setValidationErrors({})
     if (newMode === 'login') {
+      setEmail('')
+      setPassword('')
       setName('')
       setConfirmPassword('')
     }
@@ -83,6 +94,10 @@ export default function Auth() {
     setAuthMethod(method)
     setError(null)
     setValidationErrors({})
+    setEmail('')
+    setPassword('')
+    setName('')
+    setConfirmPassword('')
   }
 
   const title =
