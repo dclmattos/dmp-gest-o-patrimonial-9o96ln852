@@ -72,14 +72,14 @@ export function InlineNameEdit() {
   }
 
   return (
-    <div className="hidden sm:flex items-center gap-2">
-      <span className="text-[0.6rem] font-light tracking-[0.2em] uppercase text-neutral-500 max-w-[180px] truncate">
+    <div className="group hidden sm:flex items-center gap-2 cursor-pointer">
+      <span className="text-[0.6rem] font-light tracking-[0.2em] uppercase text-neutral-500 max-w-[180px] truncate group-hover:text-neutral-300 transition-colors duration-200">
         {displayName}
       </span>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
-            className="text-neutral-600 hover:text-primary transition-colors duration-200 focus:outline-none focus:text-primary"
+            className="text-neutral-600 hover:text-primary focus:outline-none focus:text-primary transition-opacity duration-200 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
             aria-label="Editar nome"
           >
             <Pencil size={12} />
