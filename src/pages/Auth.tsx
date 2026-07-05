@@ -401,9 +401,9 @@ export default function Auth() {
             <button
               type="button"
               onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
-              className="text-[0.6rem] font-sans font-medium tracking-[0.2em] uppercase text-primary hover:text-primary/70 transition-colors"
+              className="text-[0.6rem] font-sans font-medium tracking-[0.1em] uppercase text-primary hover:text-primary/70 transition-colors"
             >
-              {mode === 'login' ? 'Cadastra-se' : 'Voltar ao Login'}
+              {mode === 'login' ? 'Cadastrar Novo Usuário' : 'Voltar ao Login'}
             </button>
           </div>
         )}
