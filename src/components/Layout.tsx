@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { InlineNameEdit } from '@/components/InlineNameEdit'
 
 function GlobalSearch() {
   const [query, setQuery] = useState('')
@@ -196,7 +197,6 @@ export function getUserDisplayName(user: any): string {
 export default function Layout() {
   const { signOut, user } = useAuth()
   const isAdmin = user?.role === 'admin'
-  const displayName = getUserDisplayName(user)
 
   return (
     <SidebarProvider>
@@ -264,9 +264,7 @@ export default function Layout() {
               {isAdmin ? 'Painel de Controle' : 'Área do Cliente'}
             </h1>
             <span className="hidden sm:block w-px h-4 bg-neutral-800" />
-            <span className="hidden sm:block text-[0.6rem] font-light tracking-[0.2em] uppercase text-neutral-500 max-w-[180px] truncate">
-              {displayName}
-            </span>
+            <InlineNameEdit />
           </div>
           <div className="flex items-center gap-8">
             <GlobalSearch />
