@@ -403,7 +403,7 @@ export default function Auth() {
               onClick={() => switchMode(mode === 'login' ? 'signup' : 'login')}
               className="text-[0.6rem] font-sans font-medium tracking-[0.2em] uppercase text-primary hover:text-primary/70 transition-colors"
             >
-              {mode === 'login' ? 'Solicitar Cadastro' : 'Voltar ao Login'}
+              {mode === 'login' ? 'Cadastra-se' : 'Voltar ao Login'}
             </button>
           </div>
         )}
