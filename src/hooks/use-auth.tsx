@@ -5,8 +5,9 @@ import { requestOtp as requestOtpService, verifyOtp as verifyOtpService } from '
 interface AuthContextType {
   user: any
   isAuthenticated: boolean
-  signUp: (email: string, password: string) => Promise<{ error: any }>
+  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
+  signInWithGoogle: () => Promise<{ error: any }>
   signOut: () => void
   requestOtp: (email: string) => Promise<{ error: any }>
   verifyOtp: (email: string, code: string) => Promise<{ error: any }>
@@ -22,7 +23,6 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  // authStore.record survives JWT expiry — gate on authStore.isValid (decodes exp).
   const [user, setUser] = useState<any>(pb.authStore.isValid ? pb.authStore.record : null)
   const [isAuthenticated, setIsAuthenticated] = useState(pb.authStore.isValid)
   const [loading, setLoading] = useState(true)
@@ -32,7 +32,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(pb.authStore.isValid ? record : null)
       setIsAuthenticated(pb.authStore.isValid)
     })
-    // Refresh on boot; clear on failure (revoked server-side).
     if (pb.authStore.isValid) {
       pb.collection('users')
         .authRefresh()
@@ -47,9 +46,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [])
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, name: string) => {
     try {
-      await pb.collection('users').create({ email, password, passwordConfirm: password })
+      await pb.collection('users').create({
+        email,
+        password,
+        passwordConfirm: password,
+        name,
+        role: 'user',
+        can_edit_data: false,
+      })
       await pb.collection('users').authWithPassword(email, password)
       return { error: null }
     } catch (error) {
@@ -60,6 +66,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = async (email: string, password: string) => {
     try {
       await pb.collection('users').authWithPassword(email, password)
+      return { error: null }
+    } catch (error) {
+      return { error }
+    }
+  }
+
+  const signInWithGoogle = async () => {
+    try {
+      await pb.collection('users').authWithOAuth2({
+        provider: 'google',
+        redirectURL: window.location.origin + '/redirect.html',
+        createData: {
+          role: 'user',
+          can_edit_data: false,
+        },
+      })
       return { error: null }
     } catch (error) {
       return { error }
@@ -96,6 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated,
         signUp,
         signIn,
+        signInWithGoogle,
         signOut,
         requestOtp,
         verifyOtp,

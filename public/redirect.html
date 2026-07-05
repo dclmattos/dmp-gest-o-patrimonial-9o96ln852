@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Redirecting...</title>
+  </head>
+  <body>
+    <script>
+      ;(function () {
+        var params = new URLSearchParams(window.location.search)
+        var data = {
+          state: params.get('state'),
+          code: params.get('code'),
+        }
+        if (window.opener) {
+          window.opener.postMessage(data, window.location.origin)
+          setTimeout(function () {
+            window.close()
+          }, 100)
+        }
+      })()
+    </script>
+    <p style="font-family: sans-serif; color: #666; text-align: center; margin-top: 40px">
+      Redirecting...
+    </p>
+  </body>
+</html>
