@@ -146,7 +146,7 @@ export default function Users() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
+                  <TableHead>E-mail</TableHead>
                   <TableHead>Função</TableHead>
                   <TableHead>Permissão de Edição</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -163,7 +163,9 @@ export default function Users() {
                   users.map((u) => (
                     <TableRow key={u.id} className="hover:bg-muted/50 transition-colors">
                       <TableCell className="font-medium">{u.name || '—'}</TableCell>
-                      <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                      <TableCell className="p-4 align-middle text-muted-foreground">
+                        {u.email || '—'}
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant={u.role === 'admin' ? 'default' : 'secondary'}
