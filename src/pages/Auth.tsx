@@ -211,6 +211,8 @@ export default function Auth() {
                   onChange={(e) => setName(e.target.value)}
                   className={inputClass}
                   disabled={loading}
+                  autoComplete="off"
+                  name="new-name-field"
                 />
                 {validationErrors.name && (
                   <p className="text-[0.6rem] text-primary/80 mt-1 uppercase tracking-wider">
@@ -231,6 +233,8 @@ export default function Auth() {
                 onChange={(e) => setEmail(e.target.value)}
                 className={inputClass}
                 disabled={loading}
+                autoComplete="off"
+                name="new-email-field"
               />
               {validationErrors.email && (
                 <p className="text-[0.6rem] text-primary/80 mt-1 uppercase tracking-wider">
@@ -251,6 +255,8 @@ export default function Auth() {
                   onChange={(e) => setPassword(e.target.value)}
                   className={cn(inputClass, 'pr-20')}
                   disabled={loading}
+                  autoComplete="new-password"
+                  name="new-password-field"
                 />
                 <button
                   type="button"
@@ -282,6 +288,8 @@ export default function Auth() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className={cn(inputClass, 'pr-20')}
                     disabled={loading}
+                    autoComplete="new-password"
+                    name="new-confirm-password-field"
                   />
                   <button
                     type="button"
