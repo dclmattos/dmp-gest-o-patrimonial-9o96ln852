@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Trash2 } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { formatCurrency, convertValue, useCurrency } from '@/hooks/use-currency'
+import { sortByName, sortBySource } from '@/lib/sort-utils'
 import { EditAssetDialog } from '@/components/EditAssetDialog'
 import { AssetOwnerSelect } from '@/components/AssetOwnerSelect'
 import { AssetFinancials } from '@/components/AssetFinancials'
@@ -47,8 +48,8 @@ export function AssetCard({
   const { toast } = useToast()
   const [detailOpen, setDetailOpen] = useState(false)
 
-  const assetReceivables = receivables.filter((r) => r.asset === asset.id)
-  const assetLiabilities = liabilities.filter((l) => l.asset === asset.id)
+  const assetReceivables = sortBySource(receivables.filter((r) => r.asset === asset.id))
+  const assetLiabilities = sortByName(liabilities.filter((l) => l.asset === asset.id))
 
   const assetCategories = getAssetCategories(asset, categories)
 
