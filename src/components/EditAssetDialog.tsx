@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Pencil, ChevronDown } from 'lucide-react'
+import { Pencil, ChevronDown, Paperclip } from 'lucide-react'
 import * as Icons from 'lucide-react'
 import { updateAsset } from '@/services/assets'
 import { getAssetCategories, seedDefaultCategories } from '@/services/asset_categories'
@@ -28,6 +28,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { AssetReceivableManager } from './AssetReceivableManager'
 import { AssetLiabilityManager } from './AssetLiabilityManager'
 import { CategoryMultiSelect } from './CategoryMultiSelect'
+import { AssetAttachments } from './AssetAttachments'
 import { createReceivable, deleteReceivable } from '@/services/receivables'
 import { createLiability, deleteLiability } from '@/services/liabilities'
 import { useToast } from '@/hooks/use-toast'
@@ -81,6 +82,9 @@ export function EditAssetDialog({
   const [modality, setModality] = useState(asset.modality || '')
   const [contractInfo, setContractInfo] = useState(asset.contract_info || '')
   const [corporateDetails, setCorporateDetails] = useState(asset.corporate_details || '')
+  const [attachments, setAttachments] = useState<string[]>(
+    Array.isArray(asset.attachments) ? asset.attachments : [],
+  )
 
   useEffect(() => {
     if (open) {
@@ -100,6 +104,7 @@ export function EditAssetDialog({
       setModality(asset.modality || '')
       setContractInfo(asset.contract_info || '')
       setCorporateDetails(asset.corporate_details || '')
+      setAttachments(Array.isArray(asset.attachments) ? asset.attachments : [])
 
       const fetchLinked = async () => {
         try {
@@ -435,6 +440,28 @@ export function EditAssetDialog({
                 </div>
               </div>
             )}
+
+            <Collapsible className="border rounded-md p-3 space-y-2 bg-background">
+              <CollapsibleTrigger className="flex items-center justify-between w-full font-medium text-sm hover:text-primary transition-colors [&[data-state=open]>svg]:rotate-180">
+                <span className="flex items-center gap-2">
+                  <Paperclip size={16} className="text-muted-foreground" />
+                  Documentos e Anexos
+                </span>
+                <ChevronDown
+                  size={16}
+                  className="text-muted-foreground transition-transform duration-200"
+                />
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="pt-3">
+                  <AssetAttachments
+                    assetId={asset.id}
+                    attachments={attachments}
+                    onAttachmentsChange={setAttachments}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
             <Collapsible className="border rounded-md p-3 space-y-2 bg-background">
               <CollapsibleTrigger className="flex items-center justify-between w-full font-medium text-sm hover:text-primary transition-colors [&[data-state=open]>svg]:rotate-180">
